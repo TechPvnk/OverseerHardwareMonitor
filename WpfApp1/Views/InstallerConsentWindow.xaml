@@ -1,0 +1,29 @@
+<Window x:Class="Overseer.Views.InstallerConsentWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Install PawnIO Helper" Height="260" Width="520" WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
+        Background="#2D2D2D" Foreground="White" BorderBrush="#3F3F3F">
+    <Grid Margin="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock TextWrapping="Wrap" FontSize="13" FontWeight="Bold" Foreground="#BDBDBD">PawnIO native helper required to read CPU temperature and power sensors. The installer will run elevated.</TextBlock>
+
+        <StackPanel Grid.Row="1" Margin="0,12,0,12" >
+            <TextBlock x:Name="MessageText" TextWrapping="Wrap" Foreground="#BDBDBD"/>
+            <TextBlock TextWrapping="Wrap" Margin="0,12,0,0">
+                <Run Text="Checksum status: " FontWeight="Bold" Foreground="#FF3B30"/>
+                <Run x:Name="ChecksumStatus" />
+            </TextBlock>
+        </StackPanel>
+
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right">
+            <TextBlock Text="This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY. See the GNU General Public License for more details." FontSize="10" TextWrapping="Wrap" Width="275"/>
+            <Button x:Name="CancelButton" Width="100" Margin="0,0,8,0" Content="Cancel" Background="#404040" Foreground="White" BorderBrush="#3F3F3F" BorderThickness="1"/>
+            <Button x:Name="InstallButton" Width="100" IsDefault="True" Content="Install" Background="#D53746" Foreground="White" BorderBrush="#3F3F3F"/>
+        </StackPanel>
+    </Grid>
+</Window>

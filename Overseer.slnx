@@ -1,0 +1,15 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+  </Configurations>
+  <Folder Name="/Solution Items/">
+    <File Path="WpfApp1/app.manifest" />
+    <File Path="WpfApp1/App.xaml" />
+    <File Path="WpfApp1/App.xaml.cs" />
+    <File Path="WpfApp1/AssemblyInfo.cs" />
+  </Folder>
+  <Project Path="WpfApp1/Overseer.csproj">
+    <Platform Solution="*|x64" Project="x64" />
+  </Project>
+</Solution>

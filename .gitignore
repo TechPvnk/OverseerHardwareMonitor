@@ -1,0 +1,66 @@
+# Visual Studio
+.vs/
+.vscode/
+_ReSharper*/
+*.DotSettings.user
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Build output
+bin/
+obj/
+out/
+artifacts/
+
+# Visual Studio publish
+publish/
+*.Publish.xml
+
+# NuGet
+# Packages folder used by older NuGet versions
+packages/
+# NuGet global packages folder
+.nuget/packages/
+# NuGet temporary files
+project.lock.json
+
+# Rider
+.idea/
+*.sln.iml
+
+# Test results
+TestResults/
+*.trx
+
+# IIS Express
+IISExpress/
+
+# Logs
+*.log
+
+# OS generated files
+Thumbs.db
+.DS_Store
+
+# User secrets and local config
+secrets.json
+appsettings.*.local
+.env
+
+# Misc
+*.cache
+
+# Ignore Visual Studio Code workspace storage
+.vscode/
+
+# Ignore local Libs folder containing checked-in binaries (project now uses NuGet)
+Libs/
+
+# Ignore user-specific project files
+*.csproj.user
+
+# Keep local library folders (e.g. Libs/) under version control unless you intentionally want them ignored
+# If you want to ignore a local libs folder, uncomment the following line:
+# Libs/
