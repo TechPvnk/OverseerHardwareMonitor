@@ -1,20 +1,44 @@
 Overseer - Hardware Monitor (WPF)
 =================================
+![Overseer Banner](Images/SplashS.png)
 
-Overseer is an extremely straightforward Windows desktop hardware monitoring application built with WPF and .NET 8. It reads system sensors (CPU/GPU temps, usage, disk health, etc.) and provides export and tray features.
+Overseer is an extremely straightforward Windows desktop hardware monitoring application built with WPF and .NET 8. It reads system sensors (CPU/GPU temps, usage, disk health, etc.) and provides export, AOT and tray features.
 
-Overseer is focused on delivering real-time system information through a clean, immersive cyberpunk interface.
+## Why use OverseerHM?
+
+Because you get fast and simple, super lightweight, no-nonsense HWMonitor, Crystaldiskinfo, and CPU-Z capabilities in one app w/ three tabs.
+
+## Temps Monitoring
+![Overseer Banner](Images/TempsTab.png)
+- CPU/GPU current temps with min/max temps, power, and usage
+- Drives connected with min/max temps
+
+## DrivesTab
+![Overseer Banner](Images/DrivesTab.png)
+- Drives connected with model name and SMART data including temps, writes, reads, power hours, error list of present, health, and a status badge based on drive's data.
+
+## System Info
+![Overseer Banner](Images/SystemInfoTab.png)
+
+-Simple System info view including CPU name, MoBo name, GPU name, BIOS version, Ram capacity+set speed, OS version.
+
+## More on Overseer
+
+Overseer is focused on delivering real-time system information through a clean, immersive modern interface.
+
 Rather than overwhelming users with endless tables of sensors, Overseer aims to make monitoring your PC both effortlessly informative and enjoyable, but most of all, straightforward. The core emphasis is both usability and performance.
 
-I recondition and resell laptops. This app was born because I got tired of downloading and installing different apps each time I had to diagnose PCs. 
-It was a waste of time to install, run and then navigating into those apps for different readings when I already knew what I wanted to see while also knowing this could all be monitored in a single view.
-So I hope it's of help for you too. Yes, this is heavily ai assisted coding and I'm so grateful technology lets me do things like this now. I do know basic coding, and it works. Enjoy.
+I recondition and resell laptops. This app was born because I got tired of installing and using different monitoring apps each time I had to diagnose PCs. 
+It was a waste of time to install, run and then navigate into those apps for different readings when I already knew what I wanted to see while also knowing this could all be monitored in a single view.
+
+So I hope it's of help for you too. Yes, this is heavily ai assisted coding, and I'm so grateful technology now ables me do things like this. I do know basic coding, and plus it works. Enjoy.
+
 There's still much to do but I decided not to be a perfectionist and just iterate along the way!
 
 -----
 
 ✨ Features
-📊 Real-time CPU, GPU, RAM and disk monitoring
+📊 Real-time CPU, GPU and disk monitoring
 🌡️ Temperature, utilization and power sensors
 📈 Interactive performance graphs
 🎨 Modern cyberpunk-inspired interface
@@ -41,6 +65,7 @@ improve documentation
 feel free to open an Issue or submit a Pull Request.
 
 Please discuss major changes before beginning implementation.
+
 -----
 
 🎨 Branding
@@ -101,7 +126,7 @@ techpvnk@proton.me
 V 0.1:
 - Some menu functions missing:
 	-Language (English for now)
-	-Help links (only about works)
+	-Help links (only About works)
 	-Open Log
 
 Coming Soon:
