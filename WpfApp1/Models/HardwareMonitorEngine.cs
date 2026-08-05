@@ -131,6 +131,71 @@ public sealed class HardwareMonitorEngine : IDisposable
 
             float? gpuTemp = FindSensorValue(gpu, SensorType.Temperature, "Core")
                 ?? FindFirstPositiveValue(gpu, SensorType.Temperature);
+
+            // Prefer LibreHardwareMonitor GPU sensors for memory totals/usage when available
+            string gpuRamFromSensors = "Unknown";
+            string gpuMemoryTotalStr = "Unknown";
+            string gpuMemoryUsedStr = "Unknown";
+            string gpuMemoryFreeStr = "Unknown";
+            try
+            {
+                var sensors = GetSensors(gpu).ToArray();
+                // use name-based heuristics: look for "memory" + ("total"|"used"|"free")
+                float? totalMb = sensors
+                    .Where(s => s.SensorType == SensorType.SmallData && s.Name.IndexOf("memory", StringComparison.OrdinalIgnoreCase) >= 0 && s.Name.IndexOf("total", StringComparison.OrdinalIgnoreCase) >= 0)
+                    .Select(s => s.Value)
+                    .FirstOrDefault(v => v.HasValue);
+
+                float? usedMb = sensors
+                    .Where(s => s.SensorType == SensorType.SmallData && s.Name.IndexOf("memory", StringComparison.OrdinalIgnoreCase) >= 0 && s.Name.IndexOf("used", StringComparison.OrdinalIgnoreCase) >= 0)
+                    .Select(s => s.Value)
+                    .FirstOrDefault(v => v.HasValue);
+
+                float? freeMb = sensors
+                    .Where(s => s.SensorType == SensorType.SmallData && s.Name.IndexOf("memory", StringComparison.OrdinalIgnoreCase) >= 0 && (s.Name.IndexOf("free", StringComparison.OrdinalIgnoreCase) >= 0 || s.Name.IndexOf("available", StringComparison.OrdinalIgnoreCase) >= 0))
+                    .Select(s => s.Value)
+                    .FirstOrDefault(v => v.HasValue);
+
+                // fallback sensors that include D3D names
+                if (!totalMb.HasValue)
+                {
+                    totalMb = sensors.Where(s => s.SensorType == SensorType.SmallData && s.Name.IndexOf("d3d dedicated memory total", StringComparison.OrdinalIgnoreCase) >= 0)
+                        .Select(s => s.Value).FirstOrDefault(v => v.HasValue);
+                }
+                if (!usedMb.HasValue)
+                {
+                    usedMb = sensors.Where(s => s.SensorType == SensorType.SmallData && s.Name.IndexOf("d3d dedicated memory used", StringComparison.OrdinalIgnoreCase) >= 0)
+                        .Select(s => s.Value).FirstOrDefault(v => v.HasValue);
+                }
+                if (!freeMb.HasValue)
+                {
+                    freeMb = sensors.Where(s => s.SensorType == SensorType.SmallData && s.Name.IndexOf("d3d dedicated memory free", StringComparison.OrdinalIgnoreCase) >= 0)
+                        .Select(s => s.Value).FirstOrDefault(v => v.HasValue);
+                }
+
+                if (totalMb.HasValue && totalMb.Value > 0)
+                {
+                    double totalGb = Math.Round(totalMb.Value / 1024d, 2);
+                    gpuMemoryTotalStr = $"{totalGb:0.##} GB";
+                    gpuRamFromSensors = gpuMemoryTotalStr;
+                }
+
+                if (usedMb.HasValue && usedMb.Value > 0)
+                {
+                    double usedGb = Math.Round(usedMb.Value / 1024d, 2);
+                    gpuMemoryUsedStr = $"{usedGb:0.##} GB";
+                }
+
+                if (freeMb.HasValue && freeMb.Value > 0)
+                {
+                    double freeGb = Math.Round(freeMb.Value / 1024d, 2);
+                    gpuMemoryFreeStr = $"{freeGb:0.##} GB";
+                }
+            }
+            catch
+            {
+                // ignore sensor parsing errors
+            }
             float? gpuUsage = FindSensorValue(gpu, SensorType.Load, "Core")
                 ?? FindSensorValue(gpu, SensorType.Load, "GPU Core")
                 ?? FindFirstValue(gpu, SensorType.Load);
@@ -138,18 +203,209 @@ public sealed class HardwareMonitorEngine : IDisposable
                 ?? FindSensorValue(gpu, SensorType.Power, "GPU")
                 ?? FindFirstValue(gpu, SensorType.Power);
 
+            // GPU clock (best-effort)
+            float? gpuClock = FindSensorValue(gpu, SensorType.Clock, "Core")
+                ?? FindFirstValue(gpu, SensorType.Clock);
+
+            // CPU TDP fallback: if WMI TDP is unknown, show current package power as a runtime approximation
+            string cpuTdpDisplay = _systemInfo?.CpuTdp ?? "Unknown";
+            if (string.IsNullOrWhiteSpace(cpuTdpDisplay) || cpuTdpDisplay == "Unknown")
+            {
+                if (cpuPower.HasValue)
+                {
+                    cpuTdpDisplay = FormatWatts(cpuPower) + " (current)";
+                }
+            }
+
             StorageHealthSnapshot[] storage = _computer.Hardware
                 .Where(h => h.HardwareType == HardwareType.Storage)
                 .Select(CreateStorageSnapshot)
                 .ToArray();
 
+            // For GPU RAM/Bus prefer LibreHardwareMonitor sensors first, then per-GPU DXGI/WMI lookup
+            string gpuRam = "Unknown";
+            string gpuBus = "Unknown";
+            // try LHM sensors
+            try
+            {
+                if (!string.IsNullOrWhiteSpace(gpu?.Name))
+                {
+                    // gpuRamFromSensors computed above
+                    gpuRam = string.IsNullOrWhiteSpace(gpuRamFromSensors) ? "Unknown" : gpuRamFromSensors;
+                }
+            }
+            catch { }
+
+            // If sensors didn't provide a value, try per-GPU DXGI/WMI lookup
+            if (gpuRam == "Unknown")
+            {
+                try { gpuRam = _windowsSystemInfo.ReadGpuRamFor(FormatName(gpu?.Name, string.Empty)); } catch { }
+            }
+
+            try { gpuBus = _windowsSystemInfo.ReadGpuBusFor(FormatName(gpu?.Name, string.Empty)); } catch { }
+            // Prefer RAM module info from LibreHardwareMonitor if available (shows manufacturer + part)
+            var ramModulesFinal = _systemInfo?.RamModules?.ToList() ?? new System.Collections.Generic.List<string>();
+            try
+            {
+                var lhmMemory = _computer.Hardware.Where(h => h.HardwareType == HardwareType.Memory).ToArray();
+                foreach (var mem in lhmMemory)
+                {
+                    string name = FormatName(mem.Name, "Unknown Module");
+                    // find capacity sensor (Data / Capacity) reported by LHM
+                    var capSensor = GetSensors(mem).FirstOrDefault(s => s.SensorType == SensorType.Data && s.Name.IndexOf("Capacity", StringComparison.OrdinalIgnoreCase) >= 0);
+                    string capStr = string.Empty;
+                    if (capSensor?.Value is float v && v > 0)
+                    {
+                        // LHM often reports capacity in GB for these sensors
+                        capStr = $": {Math.Round(v):0} GB";
+                    }
+
+                    // find configured clock if exposed on the memory hardware
+                    var speedSensor = GetSensors(mem).FirstOrDefault(s => s.SensorType == SensorType.Clock && s.Name.IndexOf("Memory", StringComparison.OrdinalIgnoreCase) >= 0);
+                    string speedStr = string.Empty;
+                    if (speedSensor?.Value is float sv && sv > 0)
+                    {
+                        speedStr = $" @ {Math.Round(sv):0} MHz";
+                    }
+
+                    var entry = (name + capStr + speedStr).Trim();
+                    if (!string.IsNullOrWhiteSpace(entry) && !ramModulesFinal.Contains(entry))
+                    {
+                        ramModulesFinal.Add(entry);
+                    }
+                }
+            }
+            catch
+            {
+                // ignore LHM read errors
+            }
+
+            // Filter out generic or unknown entries (e.g., "Virtual Memory", "Total Memory", or entries starting with "Unknown")
+            try
+            {
+                ramModulesFinal = ramModulesFinal
+                    .Where(e => !string.IsNullOrWhiteSpace(e))
+                    .Where(e => !e.StartsWith("Unknown", StringComparison.OrdinalIgnoreCase))
+                    .Where(e => !e.Equals("Virtual Memory", StringComparison.OrdinalIgnoreCase))
+                    .Where(e => !e.Equals("Total Memory", StringComparison.OrdinalIgnoreCase))
+                    .Select(e => e.Trim())
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+            }
+            catch
+            {
+                // ignore filtering errors
+            }
+
+            // Group identical modules and preserve multiplicity; prefer non-Unknown names
+            try
+            {
+                var groups = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+
+                foreach (var entry in ramModulesFinal)
+                {
+                    string left = entry.Split(':')[0].Trim();
+                    // remove parentheses suffix like "(#0)"
+                    left = System.Text.RegularExpressions.Regex.Replace(left, "\\s*\\(#[0-9]+\\)", string.Empty);
+
+                    // extract manufacturer/part and capacity key similar to before
+                    string man = left;
+                    string part = string.Empty;
+                    if (left.Contains('-'))
+                    {
+                        var parts = left.Split('-', 2);
+                        man = parts[0].Trim();
+                        part = parts.Length > 1 ? parts[1].Trim() : string.Empty;
+                    }
+                    else
+                    {
+                        var toks = left.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
+                        man = toks.Length > 0 ? toks[0].Trim() : left;
+                        part = toks.Length > 1 ? toks[1].Trim() : string.Empty;
+                    }
+
+                    var capMatch = System.Text.RegularExpressions.Regex.Match(entry, "(\\d+)\\s*GB", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                    string cap = capMatch.Success ? capMatch.Groups[1].Value : "0";
+
+                    string key = $"{man.ToLowerInvariant()}|{part.ToLowerInvariant()}|{cap}";
+
+                    if (!groups.TryGetValue(key, out var list))
+                    {
+                        list = new List<string>();
+                        groups[key] = list;
+                    }
+                    list.Add(entry);
+                }
+
+                var finalList = new List<string>();
+                foreach (var kv in groups)
+                {
+                    var list = kv.Value;
+                    if (list.Count == 1)
+                    {
+                        finalList.Add(list[0]);
+                    }
+                    else
+                    {
+                        // emit each with index suffix to preserve multiplicity
+                        for (int i = 0; i < list.Count; i++)
+                        {
+                            // append (#{i}) if not already present
+                            string baseEntry = list[i];
+                            if (!System.Text.RegularExpressions.Regex.IsMatch(baseEntry, "\\(#[0-9]+\\)"))
+                            {
+                                // insert suffix before any trailing parts (preserve ": 16 GB @ 3600 MHz")
+                                var namePart = baseEntry.Split(':')[0].Trim();
+                                var rest = baseEntry.Substring(namePart.Length);
+                                finalList.Add($"{namePart} (#{i}){rest}");
+                            }
+                            else
+                            {
+                                finalList.Add(baseEntry);
+                            }
+                        }
+                    }
+                }
+
+                ramModulesFinal = finalList;
+            }
+            catch
+            {
+                // ignore dedupe errors
+            }
+
+            // Motherboard sub-hardware (from LibreHardwareMonitor)
+            IReadOnlyList<string> motherboardSubs = Array.Empty<string>();
+            try
+            {
+                var mb = _computer.Hardware.FirstOrDefault(h => h.HardwareType == HardwareType.Motherboard);
+                if (mb != null)
+                {
+                    motherboardSubs = mb.SubHardware
+                        .Select(sh => $"{sh.Name} | Type: {sh.HardwareType}")
+                        .Where(s => !string.IsNullOrWhiteSpace(s))
+                        .ToArray();
+                }
+            }
+            catch
+            {
+                motherboardSubs = Array.Empty<string>();
+            }
+
+            string batteryInfo = _systemInfo?.BatteryInfo ?? "Not present";
             return new HardwareSnapshot(
                         FormatName(cpu?.Name, "Unknown CPU"),
                         FormatName(gpu?.Name, "Unknown GPU"),
                         _systemInfo?.RamInfo ?? "Unknown",
+                        _systemInfo?.RamTotal ?? "Unknown",
+                        _systemInfo?.RamType ?? "Unknown",
+                        _systemInfo?.RamClock ?? "Unknown",
+                        ramModulesFinal ?? (_systemInfo?.RamModules ?? Array.Empty<string>()),
                         _systemInfo?.Motherboard ?? "Unknown",
                         _systemInfo?.Bios ?? "Unknown",
                         _systemInfo?.OsVersion ?? "Unknown",
+                        motherboardSubs,
+                        batteryInfo,
                         FormatTemperature(cpuTemp),
                         cpuTemp,
                         FormatPercent(cpuUsage),
@@ -157,6 +413,15 @@ public sealed class HardwareMonitorEngine : IDisposable
                         FormatWatts(cpuPower),
                         cpuPower,
                         FormatClock(cpuClock, _systemInfo?.CpuClock ?? "Unknown"),
+                        _systemInfo?.CpuCoresThreads ?? "Unknown",
+                        _systemInfo?.CpuCaches ?? "Unknown",
+                        cpuTdpDisplay,
+                        FormatClock(gpuClock, "Unknown"),
+                        gpuRam,
+                        gpuBus,
+                        gpuMemoryTotalStr,
+                        gpuMemoryUsedStr,
+                        gpuMemoryFreeStr,
                         FormatTemperature(gpuTemp),
                         gpuTemp,
                         FormatPercent(gpuUsage),
@@ -182,6 +447,37 @@ public sealed class HardwareMonitorEngine : IDisposable
                 Debug.WriteLine($"  [SUB-HARDWARE] Name: '{subHardware.Name}' | Type: {subHardware.HardwareType}");
                 DumpSensors(subHardware, 2);
             }
+        }
+
+        // DXGI adapter dump (best-effort)
+        try
+        {
+            var adapters = DxgiNative.EnumerateAdapters();
+            if (adapters != null && adapters.Count > 0)
+            {
+                Debug.WriteLine("\n=================== DXGI ADAPTER DUMP ===================");
+                int idx = 0;
+                foreach (var a in adapters)
+                {
+                    Debug.WriteLine($"[DXGI Adapter #{idx}] Description: {a.Description}");
+                    Debug.WriteLine($"  VendorId=0x{a.VendorId:X4} DeviceId=0x{a.DeviceId:X4} SubSysId=0x{a.SubSysId:X4} Revision={a.Revision}");
+                    Debug.WriteLine($"  DedicatedVideoMemory={a.DedicatedVideoMemory} bytes DedicatedSystemMemory={a.DedicatedSystemMemory} bytes SharedSystemMemory={a.SharedSystemMemory} bytes AdapterLuid={a.AdapterLuid}");
+                    if (a.LocalMemory is not null)
+                    {
+                        Debug.WriteLine($"  [Local VRAM] Budget={a.LocalMemory.Budget} CurrentUsage={a.LocalMemory.CurrentUsage} AvailableForReservation={a.LocalMemory.AvailableForReservation} CurrentReservation={a.LocalMemory.CurrentReservation}");
+                    }
+                    if (a.NonLocalMemory is not null)
+                    {
+                        Debug.WriteLine($"  [NonLocal System] Budget={a.NonLocalMemory.Budget} CurrentUsage={a.NonLocalMemory.CurrentUsage}");
+                    }
+                    idx++;
+                }
+                Debug.WriteLine("=========================================================");
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"DXGI adapter dump failed: {ex}");
         }
 
         Debug.WriteLine("============================================================================\n");
@@ -572,9 +868,15 @@ public sealed record HardwareSnapshot(
     string CpuName,
     string GpuName,
     string RamInfo,
+    string RamTotal,
+    string RamType,
+    string RamClock,
+    IReadOnlyList<string> RamModules,
     string Motherboard,
     string Bios,
     string OsVersion,
+    IReadOnlyList<string> MotherboardSubHardware,
+    string BatteryInfo,
     string CpuTemperature,
     float? CpuTemperatureValue,
     string CpuUsage,
@@ -582,6 +884,15 @@ public sealed record HardwareSnapshot(
     string CpuPower,
     float? CpuPowerValue,
     string CpuClock,
+    string CpuCoresThreads,
+    string CpuCaches,
+    string CpuTdp,
+    string GpuClock,
+    string GpuRam,
+    string GpuBus,
+    string GpuMemoryTotal,
+    string GpuMemoryUsed,
+    string GpuMemoryFree,
     string GpuTemperature,
     float? GpuTemperatureValue,
     string GpuUsage,
@@ -591,26 +902,42 @@ public sealed record HardwareSnapshot(
     IReadOnlyList<StorageHealthSnapshot> StorageDrives)
 {
     public static HardwareSnapshot Empty { get; } = new(
-        "Unknown CPU",
-        "Unknown GPU",
-        "Unknown",
-        "Unknown",
-        "Unknown",
-        "Unknown",
-        "N/A",
-        null,
-        "N/A",
-        null,
-        "N/A",
-        null,
-        "Unknown",
-        "N/A",
-        null,
-        "N/A",
-        null,
-        "N/A",
-        null,
-        []);
+        "Unknown CPU",                       // CpuName
+        "Unknown GPU",                       // GpuName
+        "Unknown",                           // RamInfo
+        "Unknown",                           // RamTotal
+        "Unknown",                           // RamType
+        "Unknown",                           // RamClock
+        Array.Empty<string>(),                 // RamModules
+        "Unknown",                           // Motherboard
+        "Unknown",                           // Bios
+        "Unknown",                           // OsVersion
+        Array.Empty<string>(),                 // MotherboardSubHardware
+        "Not present",                       // BatteryInfo
+        "N/A",                               // CpuTemperature
+        null,                                  // CpuTemperatureValue
+        "N/A",                               // CpuUsage
+        null,                                  // CpuUsageValue
+        "N/A",                               // CpuPower
+        null,                                  // CpuPowerValue
+        "Unknown",                            // CpuClock
+        "Unknown",                            // CpuCoresThreads
+        "Unknown",                            // CpuCaches
+        "Unknown",                            // CpuTdp
+        "Unknown",                            // GpuClock
+        "Unknown",                            // GpuRam
+        "Unknown",                            // GpuBus
+        "Unknown",                            // GpuMemoryTotal
+        "Unknown",                            // GpuMemoryUsed
+        "Unknown",                            // GpuMemoryFree
+        "N/A",                                // GpuTemperature
+        null,                                   // GpuTemperatureValue
+        "N/A",                                // GpuUsage
+        null,                                   // GpuUsageValue
+        "N/A",                                // GpuPower
+        null,                                   // GpuPowerValue
+        Array.Empty<StorageHealthSnapshot>()    // StorageDrives
+        );
 }
 
 public sealed record StorageHealthSnapshot(

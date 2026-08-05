@@ -77,6 +77,10 @@
                     <MenuItem x:Name="CelsiusMenuItem" Header="Celsius" IsCheckable="True" IsChecked="True" Click="CelsiusMenuItem_Click"/>
                     <MenuItem x:Name="FahrenheitMenuItem" Header="Fahrenheit" IsCheckable="True" Click="FahrenheitMenuItem_Click"/>
                 </MenuItem>
+                <Separator/>
+                <MenuItem Header="Debug">
+                    <MenuItem Header="Log WMI queries" IsCheckable="True" IsChecked="{Binding LogWmiQueries, Mode=TwoWay}"/>
+                </MenuItem>
             </MenuItem>
 
             <MenuItem Header="_Language">
@@ -259,6 +263,9 @@
                                 <TextBlock Text="CPU Info" FontSize="12" Foreground="#FF3B30"/>
                                 <TextBlock Text="{Binding CpuModel}" FontSize="18" FontWeight="SemiBold" Foreground="White" TextWrapping="Wrap" Margin="0,6,0,0"/>
                                 <TextBlock Text="{Binding CpuClock, StringFormat=Clock: {0}}" Foreground="#BDBDBD" Margin="0,4,0,0"/>
+                                <TextBlock Text="{Binding CpuCoresThreads, StringFormat=Cores/Threads: {0}}" Foreground="#BDBDBD" Margin="0,2,0,0"/>
+                                <TextBlock Text="{Binding CpuCaches, StringFormat=Caches: {0}}" Foreground="#BDBDBD" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                                <TextBlock Text="{Binding CpuTdp, StringFormat=TDP: {0}}" Foreground="#BDBDBD" Margin="0,2,0,0"/>
                             </StackPanel>
                         </Border>
 
@@ -266,6 +273,14 @@
                             <StackPanel>
                                 <TextBlock Text="RAM" FontSize="12" Foreground="#FF3B30"/>
                                 <TextBlock Text="{Binding RamInfo}" FontSize="18" FontWeight="SemiBold" Foreground="White" Margin="0,6,0,0"/>
+                                <!-- Total and Clock are shown in the main RamInfo line; hide duplicate fields -->
+                                <ItemsControl ItemsSource="{Binding RamModulesList}" Margin="0,6,0,0">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding}" Foreground="#9A9A9A"/>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
                             </StackPanel>
                         </Border>
 
@@ -273,6 +288,12 @@
                             <StackPanel>
                                 <TextBlock Text="GPU" FontSize="12" Foreground="#FF3B30"/>
                                 <TextBlock Text="{Binding GpuModel}" FontSize="18" FontWeight="SemiBold" Foreground="White" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                                <TextBlock Text="{Binding GpuClock, StringFormat=Clock: {0}}" Foreground="#BDBDBD" Margin="0,4,0,0"/>
+                                <TextBlock Text="{Binding GpuRam, StringFormat=RAM: {0}}" Foreground="#BDBDBD" Margin="0,2,0,0"/>
+                                <TextBlock Text="{Binding GpuMemoryTotal, StringFormat=Memory Total: {0}}" Foreground="#BDBDBD" Margin="0,2,0,0"/>
+                                <TextBlock Text="{Binding GpuMemoryUsed, StringFormat=Memory Used: {0}}" Foreground="#BDBDBD" Margin="0,2,0,0"/>
+                                <TextBlock Text="{Binding GpuMemoryFree, StringFormat=Memory Free: {0}}" Foreground="#BDBDBD" Margin="0,2,0,0"/>
+                                <TextBlock Text="{Binding GpuBus, StringFormat=Bus: {0}}" Foreground="#BDBDBD" Margin="0,2,0,0"/>
                             </StackPanel>
                         </Border>
                     </StackPanel>
@@ -282,6 +303,13 @@
                             <StackPanel>
                                 <TextBlock Text="Motherboard" FontSize="12" Foreground="#FF3B30"/>
                                 <TextBlock Text="{Binding Motherboard}" FontSize="18" FontWeight="SemiBold" Foreground="White" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                                <ItemsControl ItemsSource="{Binding MotherboardSubHardware}" Margin="0,6,0,0">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding}" Foreground="#9A9A9A"/>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
                             </StackPanel>
                         </Border>
 
@@ -289,6 +317,13 @@
                             <StackPanel>
                                 <TextBlock Text="BIOS" FontSize="12" Foreground="#FF3B30"/>
                                 <TextBlock Text="{Binding Bios}" FontSize="18" FontWeight="SemiBold" Foreground="White" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Background="#252526" CornerRadius="6" Padding="15" BorderBrush="#3F3F3F" BorderThickness="1" Margin="0,0,0,12">
+                            <StackPanel>
+                                <TextBlock Text="Battery" FontSize="12" Foreground="#FF3B30"/>
+                                <TextBlock Text="{Binding BatteryInfo}" FontSize="14" Foreground="#9A9A9A" TextWrapping="Wrap" Margin="0,6,0,0"/>
                             </StackPanel>
                         </Border>
 

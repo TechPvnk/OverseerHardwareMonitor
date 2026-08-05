@@ -15,6 +15,7 @@
     <AssemblyName>Overseer</AssemblyName>
     <RootNamespace>Overseer</RootNamespace>
   </PropertyGroup>
+  <!-- Vortice.DXGI removed: using native DXGI interop implementation instead -->
 
   <ItemGroup>
     <None Remove="Themes\favicon.ico" />
@@ -55,6 +56,17 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <CopyToPublishDirectory>Always</CopyToPublishDirectory>
     </None>
+  </ItemGroup>
+
+  <!-- Bundle helper binaries placed under 'helpers' into the publish output so the app can run them locally -->
+  <ItemGroup>
+    <Content Include="helpers\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+      <!-- Prevent the publish single-file bundler from embedding these native helper EXEs
+           so they remain as separate files next to the app after publish. -->
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+    </Content>
   </ItemGroup>
 
 </Project>

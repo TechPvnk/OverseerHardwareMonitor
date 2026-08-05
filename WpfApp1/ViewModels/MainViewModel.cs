@@ -25,6 +25,9 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
     private string _cpuMaxPower = "N/A";
     private string _cpuModel = "Unknown";
     private string _cpuClock = "Unknown";
+    private string _cpuCoresThreads = "Unknown";
+    private string _cpuCaches = "Unknown";
+    private string _cpuTdp = "Unknown";
     private string _gpuTemperature = "N/A";
     private string _gpuMinTemperature = "N/A";
     private string _gpuMaxTemperature = "N/A";
@@ -33,12 +36,22 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
     private string _gpuMinPower = "N/A";
     private string _gpuMaxPower = "N/A";
     private string _gpuModel = "Unknown";
+    private string _gpuClock = "Unknown";
+    private string _gpuRam = "Unknown";
+    private string _gpuBus = "Unknown";
+    private string _gpuMemoryTotal = "Unknown";
+    private string _gpuMemoryUsed = "Unknown";
+    private string _gpuMemoryFree = "Unknown";
     private string _diskTemperature = "N/A";
     private string _diskMinTemperature = "N/A";
     private string _diskMaxTemperature = "N/A";
     private string _diskHealth = "Unknown";
     private string _ramInfo = "Unknown";
+    private string _ramTotal = "Unknown";
+    private string _ramType = "Unknown";
+    private string _ramClock = "Unknown";
     private string _motherboard = "Unknown";
+    private string _batteryInfo = "Not present";
     private string _bios = "Unknown";
     private string _osVersion = "Unknown";
     private float? _cpuMinTemperatureValue;
@@ -54,6 +67,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
     private bool _disposed;
     private bool _useFahrenheit;
     private bool _audioAlertsEnabled = true;
+    private bool _logWmiQueries = false;
 
     public ObservableCollection<StorageHealthSnapshot> StorageDrives { get; } = new();
     public ObservableCollection<DriveTemperatureViewModel> DriveTemperatures { get; } = new();
@@ -61,6 +75,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
     public ObservableCollection<double> CpuUsageHistory { get; } = new();
     public ObservableCollection<double> GpuTemperatureHistory { get; } = new();
     public ObservableCollection<double> GpuUsageHistory { get; } = new();
+    public ObservableCollection<string> RamModulesList { get; } = new();
 
     public string CpuTemperature
     {
@@ -141,6 +156,9 @@ public sealed class DriveTemperatureViewModel : INotifyPropertyChanged
     public string CpuMaxPower { get => _cpuMaxPower; set => SetProperty(ref _cpuMaxPower, value); }
     public string CpuModel { get => _cpuModel; set => SetProperty(ref _cpuModel, value); }
     public string CpuClock { get => _cpuClock; set => SetProperty(ref _cpuClock, value); }
+    public string CpuCoresThreads { get => _cpuCoresThreads; set => SetProperty(ref _cpuCoresThreads, value); }
+    public string CpuCaches { get => _cpuCaches; set => SetProperty(ref _cpuCaches, value); }
+    public string CpuTdp { get => _cpuTdp; set => SetProperty(ref _cpuTdp, value); }
     public string GpuTemperature { get => _gpuTemperature; set => SetProperty(ref _gpuTemperature, value); }
     public string GpuMinTemperature { get => _gpuMinTemperature; set => SetProperty(ref _gpuMinTemperature, value); }
     public string GpuMaxTemperature { get => _gpuMaxTemperature; set => SetProperty(ref _gpuMaxTemperature, value); }
@@ -149,12 +167,24 @@ public sealed class DriveTemperatureViewModel : INotifyPropertyChanged
     public string GpuMinPower { get => _gpuMinPower; set => SetProperty(ref _gpuMinPower, value); }
     public string GpuMaxPower { get => _gpuMaxPower; set => SetProperty(ref _gpuMaxPower, value); }
     public string GpuModel { get => _gpuModel; set => SetProperty(ref _gpuModel, value); }
+    public string GpuClock { get => _gpuClock; set => SetProperty(ref _gpuClock, value); }
+    public string GpuRam { get => _gpuRam; set => SetProperty(ref _gpuRam, value); }
+    public string GpuBus { get => _gpuBus; set => SetProperty(ref _gpuBus, value); }
+    public string GpuMemoryTotal { get => _gpuMemoryTotal; set => SetProperty(ref _gpuMemoryTotal, value); }
+    public string GpuMemoryUsed { get => _gpuMemoryUsed; set => SetProperty(ref _gpuMemoryUsed, value); }
+    public string GpuMemoryFree { get => _gpuMemoryFree; set => SetProperty(ref _gpuMemoryFree, value); }
     public string DiskTemperature { get => _diskTemperature; set => SetProperty(ref _diskTemperature, value); }
     public string DiskMinTemperature { get => _diskMinTemperature; set => SetProperty(ref _diskMinTemperature, value); }
     public string DiskMaxTemperature { get => _diskMaxTemperature; set => SetProperty(ref _diskMaxTemperature, value); }
     public string DiskHealth { get => _diskHealth; set => SetProperty(ref _diskHealth, value); }
     public string RamInfo { get => _ramInfo; set => SetProperty(ref _ramInfo, value); }
+    public string RamTotal { get => _ramTotal; set => SetProperty(ref _ramTotal, value); }
+    public string RamType { get => _ramType; set => SetProperty(ref _ramType, value); }
+    public string RamClock { get => _ramClock; set => SetProperty(ref _ramClock, value); }
     public string Motherboard { get => _motherboard; set => SetProperty(ref _motherboard, value); }
+    public string BatteryInfo { get => _batteryInfo; set => SetProperty(ref _batteryInfo, value); }
+
+    public ObservableCollection<string> MotherboardSubHardware { get; } = new();
     public string Bios { get => _bios; set => SetProperty(ref _bios, value); }
     public string OsVersion { get => _osVersion; set => SetProperty(ref _osVersion, value); }
 
@@ -162,6 +192,18 @@ public sealed class DriveTemperatureViewModel : INotifyPropertyChanged
     {
         get => _audioAlertsEnabled;
         set => SetProperty(ref _audioAlertsEnabled, value);
+    }
+
+    public bool LogWmiQueries
+    {
+        get => _logWmiQueries;
+        set
+        {
+            if (SetProperty(ref _logWmiQueries, value))
+            {
+                Overseer.Models.WindowsSystemInfo.LogWmiQueries = value;
+            }
+        }
     }
     public MainViewModel()
     {
@@ -195,14 +237,27 @@ public sealed class DriveTemperatureViewModel : INotifyPropertyChanged
 
             CpuModel = snapshot.CpuName;
             CpuClock = snapshot.CpuClock;
+            CpuCoresThreads = snapshot.CpuCoresThreads;
+            CpuCaches = snapshot.CpuCaches;
+            CpuTdp = snapshot.CpuTdp;
             CpuTemperature = FormatTemperature(snapshot.CpuTemperatureValue);
             CpuUsage = snapshot.CpuUsage;
             CpuPower = snapshot.CpuPower;
             GpuModel = snapshot.GpuName;
             GpuTemperature = FormatTemperature(snapshot.GpuTemperatureValue);
+            GpuClock = snapshot.GpuClock;
+            GpuRam = snapshot.GpuRam;
+            GpuBus = snapshot.GpuBus;
             GpuUsage = snapshot.GpuUsage;
             GpuPower = snapshot.GpuPower;
+            GpuMemoryTotal = snapshot.GpuMemoryTotal;
+            GpuMemoryUsed = snapshot.GpuMemoryUsed;
+            GpuMemoryFree = snapshot.GpuMemoryFree;
             RamInfo = snapshot.RamInfo;
+            RamTotal = snapshot.RamTotal;
+            RamType = snapshot.RamType;
+            RamClock = snapshot.RamClock;
+            BatteryInfo = snapshot.BatteryInfo;
             Motherboard = snapshot.Motherboard;
             Bios = snapshot.Bios;
             OsVersion = snapshot.OsVersion;
@@ -253,6 +308,20 @@ public sealed class DriveTemperatureViewModel : INotifyPropertyChanged
                 {
                     DriveTemperatures.RemoveAt(i);
                 }
+            }
+
+            // Update RAM modules list
+            RamModulesList.Clear();
+            foreach (var mod in snapshot.RamModules)
+            {
+                RamModulesList.Add(mod);
+            }
+
+            // Update motherboard sub-hardware list
+            MotherboardSubHardware.Clear();
+            foreach (var item in snapshot.MotherboardSubHardware)
+            {
+                MotherboardSubHardware.Add(item);
             }
 
             DiskHealth = snapshot.StorageDrives.Count == 0
