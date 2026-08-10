@@ -2,6 +2,13 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
+
+    <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="#BE2331"/>
+    <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="#F2F2F2"/>
+    <SolidColorBrush x:Key="{x:Static SystemColors.ControlBrushKey}" Color="#252526"/>
+    <SolidColorBrush x:Key="{x:Static SystemColors.ControlTextBrushKey}" Color="#F2F2F2"/>
+    <SolidColorBrush x:Key="{x:Static SystemColors.MenuBrushKey}" Color="#202020"/>
+    <SolidColorBrush x:Key="{x:Static SystemColors.MenuTextBrushKey}" Color="#F2F2F2"/>
     <Style TargetType="{x:Type Menu}">
         <Setter Property="Background" Value="{StaticResource MenuBrush}"/>
         <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
@@ -32,10 +39,8 @@
                             BorderThickness="1"
                             Padding="3"
                             SnapsToDevicePixels="True">
-                        <ScrollViewer CanContentScroll="True">
-                            <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Cycle"
-                                            SnapsToDevicePixels="True"/>
-                        </ScrollViewer>
+                        <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Cycle"
+                                        SnapsToDevicePixels="True"/>
                     </Border>
                 </Popup>
             </Grid>
@@ -157,10 +162,8 @@
                             BorderThickness="1"
                             Padding="3"
                             SnapsToDevicePixels="True">
-                        <ScrollViewer CanContentScroll="True">
-                            <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Cycle"
-                                            SnapsToDevicePixels="True"/>
-                        </ScrollViewer>
+                        <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Cycle"
+                                        SnapsToDevicePixels="True"/>
                     </Border>
                 </Popup>
             </Grid>
@@ -207,7 +210,7 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Separator">
-                    <Border Height="1" Background="{StaticResource SeparatorBrush}"/>
+                    <Border Height="1" Background="{StaticResource BorderBrush}"/>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>

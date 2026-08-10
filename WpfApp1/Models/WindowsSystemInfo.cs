@@ -247,13 +247,17 @@ public sealed class WindowsSystemInfo
                     }
                 }
 
-                if (match is not null)
+                if (match is not null && !string.IsNullOrWhiteSpace(match.Description))
                 {
                     // Try to locate a matching Win32_VideoController by name
                     var controllers = Query("root\\CIMV2", "SELECT Name, PNPDeviceID FROM Win32_VideoController");
-                    var controller = controllers.FirstOrDefault(c => !string.IsNullOrWhiteSpace(c.GetString("Name")) &&
-                        (c.GetString("Name").Contains(match.Description, StringComparison.OrdinalIgnoreCase)
-                         || (!string.IsNullOrWhiteSpace(gpuName) && c.GetString("Name").Contains(gpuName, StringComparison.OrdinalIgnoreCase))));
+                    var controller = controllers.FirstOrDefault(c =>
+                    {
+                        string? controllerName = c.GetString("Name");
+                        return !string.IsNullOrWhiteSpace(controllerName)
+                            && (controllerName.Contains(match.Description, StringComparison.OrdinalIgnoreCase)
+                                || (!string.IsNullOrWhiteSpace(gpuName) && controllerName.Contains(gpuName, StringComparison.OrdinalIgnoreCase)));
+                    });
 
                     if (controller != null)
                     {
@@ -400,12 +404,15 @@ public sealed class WindowsSystemInfo
                     try { all = Query("root\\CIMV2", "SELECT * FROM Win32_PnPEntity"); } catch { all = Array.Empty<WmiObject>(); }
                 }
             }
+            all ??= Array.Empty<WmiObject>();
             if (all.Length > 0)
             {
                 // Normalize DeviceID by collapsing multiple backslashes and uppercasing for comparison
                 string NormalizeId(string? id) => (id ?? string.Empty).Replace("\\\\", "\\").Trim().ToUpperInvariant();
                 string target = NormalizeId(pnp);
-                var ent = all.FirstOrDefault(e => target == NormalizeId(e.GetString("DeviceID")) || (NormalizeId(e.GetString("DeviceID")).Contains(target)));
+                var ent = string.IsNullOrWhiteSpace(target)
+                    ? null
+                    : all.FirstOrDefault(e => target == NormalizeId(e.GetString("DeviceID")) || NormalizeId(e.GetString("DeviceID")).Contains(target));
                 string? pnpId2 = ent?.GetString("PNPDeviceID");
                 string? name2 = ent?.GetString("Name");
                 if (!string.IsNullOrWhiteSpace(pnpId2) && (pnpId2.Contains("PCI", StringComparison.OrdinalIgnoreCase) || pnpId2.Contains("PCIVEN", StringComparison.OrdinalIgnoreCase)))

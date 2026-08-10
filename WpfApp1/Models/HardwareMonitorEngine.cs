@@ -201,7 +201,7 @@ public sealed class HardwareMonitorEngine : IDisposable
                 ?? FindFirstValue(gpu, SensorType.Load);
             float? gpuPower = FindSensorValue(gpu, SensorType.Power, "Package")
                 ?? FindSensorValue(gpu, SensorType.Power, "GPU")
-                ?? FindFirstValue(gpu, SensorType.Power);
+                ?? FindFirstPositiveValue(gpu, SensorType.Power);
 
             // GPU clock (best-effort)
             float? gpuClock = FindSensorValue(gpu, SensorType.Clock, "Core")
@@ -491,7 +491,11 @@ public sealed class HardwareMonitorEngine : IDisposable
             foreach (ManagementBaseObject obj in searcher.Get())
             {
                 uint temp = Convert.ToUInt32(obj["CurrentTemperature"], CultureInfo.InvariantCulture);
-                return (temp / 10f) - 273.15f;
+                float celsius = (temp / 10f) - 273.15f;
+                if (celsius is > 0f and < 125f)
+                {
+                    return celsius;
+                }
             }
         }
         catch
@@ -538,8 +542,8 @@ public sealed class HardwareMonitorEngine : IDisposable
             FormatPercent(lifeRemaining),
             FormatTemperature(temperature),
             temperature,
-            FindStorageCounter(storage, "Read"),
-            FindStorageCounter(storage, "Write"),
+            FindStorageDataCounter(storage, true),
+            FindStorageDataCounter(storage, false),
             FindStorageCounter(storage, "Power On Count"),
             FindStorageCounter(storage, "Power On Hours"),
             GetStorageInterfaceType(storage),
@@ -739,6 +743,38 @@ public sealed class HardwareMonitorEngine : IDisposable
         return lifeRemaining.Value >= 90 ? "Excellent" : "GOOD";
     }
 
+    private static string FindStorageDataCounter(IHardware storage, bool reads)
+    {
+        string[] preferredNames = reads
+            ? ["Total Host Reads", "Host Reads", "Total Reads", "Data Units Read", "Data Read", "Read"]
+            : ["Total Host Writes", "Host Writes", "NAND Writes", "Total Writes", "Data Units Written", "Data Written", "Write"];
+
+        foreach (string preferredName in preferredNames)
+        {
+            float? value = GetSensors(storage)
+                .Where(sensor => sensor.SensorType == SensorType.Data)
+                .Where(sensor => IsStorageLifetimeDataSensor(sensor, preferredName))
+                .Select(sensor => sensor.Value)
+                .FirstOrDefault(v => v.HasValue);
+
+            if (value.HasValue)
+            {
+                return $"{value.Value:0.#} GB";
+            }
+        }
+
+        return "Unknown";
+    }
+
+    private static bool IsStorageLifetimeDataSensor(ISensor sensor, string namePart)
+    {
+        return sensor.Name.Contains(namePart, StringComparison.OrdinalIgnoreCase)
+            && !sensor.Name.Contains("Rate", StringComparison.OrdinalIgnoreCase)
+            && !sensor.Name.Contains("Activity", StringComparison.OrdinalIgnoreCase)
+            && !sensor.Name.Contains("Throughput", StringComparison.OrdinalIgnoreCase)
+            && !sensor.Name.Contains("Speed", StringComparison.OrdinalIgnoreCase)
+            && !sensor.Name.Contains("Load", StringComparison.OrdinalIgnoreCase);
+    }
     private static string FindStorageCounter(IHardware storage, string namePart)
     {
         float? value = GetSensors(storage)
@@ -781,28 +817,28 @@ public sealed class HardwareMonitorEngine : IDisposable
 
     private static string FormatTemperature(float? value)
     {
-        return value.HasValue
+        return value.HasValue && !float.IsNaN(value.Value) && !float.IsInfinity(value.Value)
             ? $"{value.Value.ToString("0.#", CultureInfo.InvariantCulture)} C"
             : "N/A";
     }
 
     private static string FormatPercent(float? value)
     {
-        return value.HasValue
+        return value.HasValue && !float.IsNaN(value.Value) && !float.IsInfinity(value.Value)
             ? $"{value.Value.ToString("0.#", CultureInfo.InvariantCulture)}%"
             : "N/A";
     }
 
     private static string FormatWatts(float? value)
     {
-        return value.HasValue
+        return value.HasValue && value.Value > 0 && !float.IsNaN(value.Value) && !float.IsInfinity(value.Value)
             ? $"{value.Value.ToString("0.#", CultureInfo.InvariantCulture)} W"
             : "N/A";
     }
 
     private static string FormatClock(float? value, string fallback)
     {
-        return value.HasValue && value.Value > 0
+        return value.HasValue && value.Value > 0 && !float.IsNaN(value.Value) && !float.IsInfinity(value.Value)
             ? $"{value.Value.ToString("0", CultureInfo.InvariantCulture)} MHz"
             : fallback;
     }

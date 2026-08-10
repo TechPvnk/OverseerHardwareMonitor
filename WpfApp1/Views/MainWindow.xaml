@@ -35,10 +35,6 @@
                 </Setter.Value>
             </Setter>
         </Style>
-        <Style TargetType="MenuItem">
-            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
-            <Setter Property="Background" Value="{StaticResource MenuBrush}"/>
-        </Style>
     </Window.Resources>
 
     <Grid>
@@ -89,10 +85,17 @@
             </MenuItem>
 
             <MenuItem Header="_Help">
-                <MenuItem Header="Documentation"/>
-                <MenuItem Header="TechPvnk"/>
-                <MenuItem Header="What do these readings mean?"/>
-                <MenuItem Header="Check for Updates"/>
+                <MenuItem Header="Documentation"
+              Click="DocumentationMenuItem_Click"/>
+
+                <MenuItem Header="TechPvnk"
+              Click="TechPvnkMenuItem_Click"/>
+
+                <MenuItem Header="What do these readings mean?"
+              Click="ReadingsHelpMenuItem_Click"/>
+
+                <MenuItem Header="Check for Updates"
+              Click="CheckForUpdatesMenuItem_Click"/>
                 <Separator/>
                 <MenuItem Header="About Overseer..." Click="AboutMenuItem_Click"/>
             </MenuItem>
@@ -322,15 +325,15 @@
 
                         <Border Background="#252526" CornerRadius="6" Padding="15" BorderBrush="#3F3F3F" BorderThickness="1" Margin="0,0,0,12">
                             <StackPanel>
-                                <TextBlock Text="Battery" FontSize="12" Foreground="#FF3B30"/>
-                                <TextBlock Text="{Binding BatteryInfo}" FontSize="14" Foreground="#9A9A9A" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                                <TextBlock Text="OS Version" FontSize="12" Foreground="#FF3B30"/>
+                                <TextBlock Text="{Binding OsVersion}" FontSize="18" FontWeight="SemiBold" Foreground="White" TextWrapping="Wrap" Margin="0,6,0,0"/>
                             </StackPanel>
                         </Border>
 
                         <Border Background="#252526" CornerRadius="6" Padding="15" BorderBrush="#3F3F3F" BorderThickness="1">
                             <StackPanel>
-                                <TextBlock Text="OS Version" FontSize="12" Foreground="#FF3B30"/>
-                                <TextBlock Text="{Binding OsVersion}" FontSize="18" FontWeight="SemiBold" Foreground="White" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                                <TextBlock Text="Battery" FontSize="12" Foreground="#FF3B30"/>
+                                <TextBlock Text="{Binding BatteryInfo}" FontSize="14" Foreground="#9A9A9A" TextWrapping="Wrap" Margin="0,6,0,0"/>
                             </StackPanel>
                         </Border>
                     </StackPanel>

@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Text;
+using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -517,6 +518,34 @@ namespace Overseer
             }
 
             return false;
+        }
+        private void DocumentationMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            OpenUrl("https://github.com/TechPvnk/OverseerHardwareMonitor#readme");
+        }
+
+        private void TechPvnkMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            OpenUrl("https://beacons.ai/techpvnk");
+        }
+
+        private void ReadingsHelpMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            OpenUrl("https://overseer.techpvnk.com");
+        }
+
+        private void CheckForUpdatesMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            OpenUrl("https://github.com/TechPvnk/OverseerHardwareMonitor/releases/latest");
+        }
+
+        private static void OpenUrl(string url)
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = url,
+                UseShellExecute = true
+            });
         }
     }
 }

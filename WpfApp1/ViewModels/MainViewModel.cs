@@ -1,6 +1,7 @@
 using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows.Threading;
@@ -354,9 +355,10 @@ public sealed class DriveTemperatureViewModel : INotifyPropertyChanged
             AddHistoryPoint(GpuUsageHistory, snapshot.GpuUsageValue);
             _audioAlertService.ProcessSnapshot(snapshot, AudioAlertsEnabled);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            CpuTemperature = "N/A";
+            Debug.WriteLine($"RefreshData failed: {ex}");
+            ApplyUnavailableHardwareState();
         }
     }
 
@@ -423,6 +425,20 @@ public sealed class DriveTemperatureViewModel : INotifyPropertyChanged
         return true;
     }
 
+    private void ApplyUnavailableHardwareState()
+    {
+        CpuTemperature = "N/A";
+        CpuUsage = "N/A";
+        CpuPower = "N/A";
+        GpuTemperature = "N/A";
+        GpuUsage = "N/A";
+        GpuPower = "N/A";
+        DiskTemperature = "N/A";
+        DiskHealth = "Unknown";
+
+        StorageDrives.Clear();
+        DriveTemperatures.Clear();
+    }
     private static void AddHistoryPoint(ObservableCollection<double> history, float? value)
     {
         if (!value.HasValue)
@@ -465,7 +481,7 @@ public sealed class DriveTemperatureViewModel : INotifyPropertyChanged
 
     private string FormatTemperature(float? celsius)
     {
-        if (!celsius.HasValue)
+        if (!celsius.HasValue || float.IsNaN(celsius.Value) || float.IsInfinity(celsius.Value))
         {
             return "N/A";
         }
@@ -482,7 +498,7 @@ public sealed class DriveTemperatureViewModel : INotifyPropertyChanged
             return FormatTemperature(value);
         }
 
-        return value.HasValue ? $"{value.Value:0.#} {unit}" : "N/A";
+        return value.HasValue && !float.IsNaN(value.Value) && !float.IsInfinity(value.Value) ? $"{value.Value:0.#} {unit}" : "N/A";
     }
 
     public void Dispose()
