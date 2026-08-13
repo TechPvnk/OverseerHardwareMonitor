@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
@@ -7,6 +7,7 @@ using LibreHardwareMonitor.Hardware;
 using System.Management;
 using System.IO;
 using Overseer.Helpers;
+using Overseer.Services;
 
 namespace Overseer.Models;
 
@@ -542,6 +543,7 @@ public sealed class HardwareMonitorEngine : IDisposable
             FormatPercent(lifeRemaining),
             FormatTemperature(temperature),
             temperature,
+            TemperatureStatusService.Evaluate(TemperatureCategory.Storage, temperature),
             FindStorageDataCounter(storage, true),
             FindStorageDataCounter(storage, false),
             FindStorageCounter(storage, "Power On Count"),
@@ -982,9 +984,11 @@ public sealed record StorageHealthSnapshot(
     string LifeRemaining,
     string Temperature,
     float? TemperatureValue,
+    TemperatureStatus TemperatureStatus,
     string TotalReads,
     string TotalWrites,
     string PowerOnCount,
     string PowerOnHours,
     string InterfaceType,
     string ErrorFlag);
+

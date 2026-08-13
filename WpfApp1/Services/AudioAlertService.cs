@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Media;
 using Overseer.Models;
@@ -7,10 +7,6 @@ namespace Overseer.Services;
 
 public sealed class AudioAlertService
 {
-    private const float CpuCriticalCelsius = 95f;
-    private const float GpuCriticalCelsius = 90f;
-    private const float StorageCriticalCelsius = 70f;
-    private const float RearmDeltaCelsius = 10f;
     private static readonly TimeSpan Cooldown = TimeSpan.FromMinutes(5);
 
     private readonly Dictionary<string, TemperatureAlertState> _temperatureStates = new(StringComparer.OrdinalIgnoreCase);
@@ -25,12 +21,12 @@ public sealed class AudioAlertService
             return;
         }
 
-        CheckTemperature("CPU", snapshot.CpuTemperatureValue, CpuCriticalCelsius);
-        CheckTemperature("GPU", snapshot.GpuTemperatureValue, GpuCriticalCelsius);
+        CheckTemperature("CPU", TemperatureCategory.Cpu, snapshot.CpuTemperatureValue);
+        CheckTemperature("GPU", TemperatureCategory.Gpu, snapshot.GpuTemperatureValue);
 
         foreach (StorageHealthSnapshot drive in snapshot.StorageDrives)
         {
-            CheckTemperature($"Storage:{drive.Name}", drive.TemperatureValue, StorageCriticalCelsius);
+            CheckTemperature($"Storage:{drive.Name}", TemperatureCategory.Storage, drive.TemperatureValue);
             CheckSmartHealth(drive);
         }
     }
@@ -42,21 +38,23 @@ public sealed class AudioAlertService
         _smartAlertCooldowns.Clear();
     }
 
-    private void CheckTemperature(string sensorKey, float? temperatureCelsius, float thresholdCelsius)
+    private void CheckTemperature(string sensorKey, TemperatureCategory category, float? temperatureCelsius)
     {
         TemperatureAlertState state = GetTemperatureState(sensorKey);
-        if (!temperatureCelsius.HasValue)
+        TemperatureStatus status = TemperatureStatusService.Evaluate(category, temperatureCelsius);
+        if (!status.IsAvailable || !status.TemperatureCelsius.HasValue)
         {
             return;
         }
 
-        if (temperatureCelsius.Value <= thresholdCelsius - RearmDeltaCelsius)
+        float temperature = status.TemperatureCelsius.Value;
+        if (temperature <= status.Threshold.CriticalCelsius - TemperatureThresholds.AlertRearmDeltaCelsius)
         {
             state.Armed = true;
             return;
         }
 
-        if (temperatureCelsius.Value < thresholdCelsius || !state.Armed)
+        if (status.State != TemperatureStatusKind.Critical || !state.Armed)
         {
             return;
         }

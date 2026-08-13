@@ -5,6 +5,8 @@
     <!-- Backgrounds -->
     <SolidColorBrush x:Key="BackgroundBrush" Color="#181818"/>
     <SolidColorBrush x:Key="PanelBrush" Color="#242424"/>
+    <SolidColorBrush x:Key="CardBrush" Color="#1D1E20"/>
+    <SolidColorBrush x:Key="CardInsetBrush" Color="#151617"/>
     <SolidColorBrush x:Key="MenuBrush" Color="#202020"/>
     <SolidColorBrush x:Key="PopupBrush" Color="#252526"/>
 
@@ -15,6 +17,7 @@
     <SolidColorBrush x:Key="TextBrush" Color="#F2F2F2"/>
     <SolidColorBrush x:Key="MutedTextBrush" Color="#A0A0A0"/>
     <SolidColorBrush x:Key="DisabledTextBrush" Color="#707070"/>
+    <SolidColorBrush x:Key="TelemetryBrush" Color="#8FD3FF"/>
 
     <!-- Accent -->
     <SolidColorBrush x:Key="AccentBrush" Color="#BE2331"/>
@@ -25,5 +28,81 @@
     <SolidColorBrush x:Key="MenuHoverBrush" Color="#BE2331"/>
     <SolidColorBrush x:Key="MenuSelectedBrush" Color="#8D1D28"/>
     <SolidColorBrush x:Key="SeparatorBrush" Color="#404040"/>
+
+    <!-- Typography: bundled with the app so display text stays consistent on every machine. -->
+    <FontFamily x:Key="DisplayFont">/Overseer;component/Fonts/#Quantico</FontFamily>
+
+    <Style x:Key="SectionLabelTextStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource DisplayFont}"/>
+        <Setter Property="FontSize" Value="15
+                "/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="Foreground" Value="{StaticResource AccentHoverBrush}"/>
+    </Style>
+
+    <Style x:Key="CardTitleTextStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="17"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+    </Style>
+
+    <Style x:Key="MetricTextStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="Segoe UI"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="Foreground" Value="{StaticResource MutedTextBrush}"/>
+    </Style>
+
+    <Style x:Key="ContentCardStyle" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource CardBrush}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius" Value="4"/>
+        <Setter Property="Padding" Value="14"/>
+    </Style>
+
+    <!-- Carbon-style vertical scrollbar used by storage and detail viewports. -->
+    <Style x:Key="TechPvnkScrollBarStyle" TargetType="{x:Type ScrollBar}">
+        <Setter Property="Width" Value="13"/>
+        <Setter Property="Background" Value="#121314"/>
+        <Setter Property="Foreground" Value="{StaticResource AccentBrush}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type ScrollBar}">
+                    <Grid Background="{TemplateBinding Background}">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="16"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="16"/>
+                        </Grid.RowDefinitions>
+                        <RepeatButton Grid.Row="0" Command="ScrollBar.LineUpCommand" Background="#1A1B1D" BorderThickness="0" Focusable="False">
+                            <Path Data="M 2 10 L 6.5 5 L 11 10 Z" Fill="{StaticResource AccentBrush}" Width="9" Height="9"/>
+                        </RepeatButton>
+                        <Track x:Name="PART_Track" Grid.Row="1" IsDirectionReversed="True" Focusable="False">
+                            <Track.DecreaseRepeatButton>
+                                <RepeatButton Command="ScrollBar.PageUpCommand" Background="#202123" BorderThickness="0" Focusable="False"/>
+                            </Track.DecreaseRepeatButton>
+                            <Track.Thumb>
+                                <Thumb Background="{StaticResource AccentBrush}" BorderBrush="{StaticResource AccentHoverBrush}" BorderThickness="1" Focusable="False">
+                                    <Thumb.Template>
+                                        <ControlTemplate TargetType="{x:Type Thumb}">
+                                            <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="2"/>
+                                        </ControlTemplate>
+                                    </Thumb.Template>
+                                </Thumb>
+                            </Track.Thumb>
+                            <Track.IncreaseRepeatButton>
+                                <RepeatButton Command="ScrollBar.PageDownCommand" Background="#202123" BorderThickness="0" Focusable="False"/>
+                            </Track.IncreaseRepeatButton>
+                        </Track>
+                        <RepeatButton Grid.Row="2" Command="ScrollBar.LineDownCommand" Background="#1A1B1D" BorderThickness="0" Focusable="False">
+                            <Path Data="M 2 5 L 6.5 10 L 11 5 Z" Fill="{StaticResource AccentBrush}" Width="9" Height="9"/>
+                        </RepeatButton>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="{x:Type ScrollBar}" BasedOn="{StaticResource TechPvnkScrollBarStyle}"/>
 
 </ResourceDictionary>

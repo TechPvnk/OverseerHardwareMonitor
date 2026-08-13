@@ -21,6 +21,9 @@
     <None Remove="Themes\favicon.ico" />
     <None Remove="Themes\oshmfavicon.png" />
     <None Remove="Themes\Splash.png" />
+    <None Remove="Themes\overseer-brand.png" />
+    <None Remove="Fonts\Quantico-Regular.ttf" />
+    <None Remove="Fonts\Quantico-Bold.ttf" />
   </ItemGroup>
 
   <ItemGroup>
@@ -44,6 +47,11 @@
     <Resource Include="Themes\Splash.png">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </Resource>
+    <Resource Include="Themes\overseer-brand.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Fonts\Quantico-Regular.ttf" />
+    <Resource Include="Fonts\Quantico-Bold.ttf" />
   </ItemGroup>
 
   <!-- Include repository docs in publish output -->
@@ -65,6 +73,15 @@
       <CopyToPublishDirectory>Always</CopyToPublishDirectory>
       <!-- Prevent the publish single-file bundler from embedding these native helper EXEs
            so they remain as separate files next to the app after publish. -->
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+    </Content>
+  </ItemGroup>
+
+  <!-- Smartmontools remains a separately distributed GPL executable. Do not embed it in single-file output. -->
+  <ItemGroup>
+    <Content Include="ThirdParty\Smartmontools\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>Always</CopyToPublishDirectory>
       <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
     </Content>
   </ItemGroup>

@@ -1,9 +1,10 @@
-using System;
+﻿using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 using System.Windows.Threading;
 using Overseer.Models;
 using Overseer.Services;
@@ -16,8 +17,12 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
 
     private readonly HardwareMonitorEngine _engine;
     private readonly AudioAlertService _audioAlertService = new();
+    private readonly SmartctlService _smartctlService = new();
     private readonly DispatcherTimer _timer;
+    private bool _smartctlRefreshInProgress;
+    private DateTime _nextSmartctlRefreshUtc = DateTime.MinValue;
     private string _cpuTemperature = "Initializing...";
+    private TemperatureStatus _cpuTemperatureStatus = TemperatureStatus.Unavailable(TemperatureThresholds.Cpu);
     private string _cpuMinTemperature = "N/A";
     private string _cpuMaxTemperature = "N/A";
     private string _cpuUsage = "N/A";
@@ -30,6 +35,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
     private string _cpuCaches = "Unknown";
     private string _cpuTdp = "Unknown";
     private string _gpuTemperature = "N/A";
+    private TemperatureStatus _gpuTemperatureStatus = TemperatureStatus.Unavailable(TemperatureThresholds.Gpu);
     private string _gpuMinTemperature = "N/A";
     private string _gpuMaxTemperature = "N/A";
     private string _gpuUsage = "N/A";
@@ -70,7 +76,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
     private bool _audioAlertsEnabled = true;
     private bool _logWmiQueries = false;
 
-    public ObservableCollection<StorageHealthSnapshot> StorageDrives { get; } = new();
+    public ObservableCollection<StorageDriveViewModel> StorageDrives { get; } = new();
     public ObservableCollection<DriveTemperatureViewModel> DriveTemperatures { get; } = new();
     public ObservableCollection<double> CpuTemperatureHistory { get; } = new();
     public ObservableCollection<double> CpuUsageHistory { get; } = new();
@@ -84,10 +90,55 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
         set => SetProperty(ref _cpuTemperature, value);
     }
 
+public sealed class StorageDriveViewModel : INotifyPropertyChanged
+{
+    private StorageHealthSnapshot _snapshot;
+
+    public StorageDriveViewModel(StorageHealthSnapshot snapshot)
+    {
+        _snapshot = snapshot;
+    }
+
+    public string Name => _snapshot.Name;
+    public string HealthStatus => _snapshot.HealthStatus;
+    public string LifeRemaining => _snapshot.LifeRemaining;
+    public string Temperature => _snapshot.Temperature;
+    public float? TemperatureValue => _snapshot.TemperatureValue;
+    public TemperatureStatus TemperatureStatus => _snapshot.TemperatureStatus;
+    public string TotalReads => _snapshot.TotalReads;
+    public string TotalWrites => _snapshot.TotalWrites;
+    public string PowerOnCount => _snapshot.PowerOnCount;
+    public string PowerOnHours => _snapshot.PowerOnHours;
+    public string InterfaceType => _snapshot.InterfaceType;
+    public string ErrorFlag => _snapshot.ErrorFlag;
+    public SmartctlDriveReport? SmartctlData { get; private set; }
+    public string SmartctlStatus => SmartctlData?.StatusMessage ?? "SMART details unavailable.";
+
+    public void Update(StorageHealthSnapshot snapshot)
+    {
+        _snapshot = snapshot;
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(string.Empty));
+    }
+
+    public void UpdateSmartctlData(SmartctlDriveReport? report, string? statusMessage = null)
+    {
+        SmartctlData = report;
+        if (report == null && !string.IsNullOrWhiteSpace(statusMessage))
+        {
+            SmartctlData = SmartctlDriveReport.Unavailable(new SmartctlDevice(Name, null, Name), statusMessage);
+        }
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(SmartctlData)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(SmartctlStatus)));
+    }
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+}
+
 public sealed class DriveTemperatureViewModel : INotifyPropertyChanged
 {
     private string _name;
     private string _temperature = "N/A";
+    private TemperatureStatus _temperatureStatus = TemperatureStatus.Unavailable(TemperatureThresholds.Storage);
 
     public DriveTemperatureViewModel(string name)
     {
@@ -109,6 +160,17 @@ public sealed class DriveTemperatureViewModel : INotifyPropertyChanged
     }
 
     public float? TemperatureValue { get; set; }
+
+    public TemperatureStatus TemperatureStatus
+    {
+        get => _temperatureStatus;
+        set
+        {
+            if (Equals(value, _temperatureStatus)) return;
+            _temperatureStatus = value;
+            OnPropertyChanged();
+        }
+    }
 
     public ObservableCollection<double> History { get; }
 
@@ -149,6 +211,7 @@ public sealed class DriveTemperatureViewModel : INotifyPropertyChanged
     }
 }
 
+    public TemperatureStatus CpuTemperatureStatus { get => _cpuTemperatureStatus; set => SetProperty(ref _cpuTemperatureStatus, value); }
     public string CpuMinTemperature { get => _cpuMinTemperature; set => SetProperty(ref _cpuMinTemperature, value); }
     public string CpuMaxTemperature { get => _cpuMaxTemperature; set => SetProperty(ref _cpuMaxTemperature, value); }
     public string CpuUsage { get => _cpuUsage; set => SetProperty(ref _cpuUsage, value); }
@@ -160,6 +223,7 @@ public sealed class DriveTemperatureViewModel : INotifyPropertyChanged
     public string CpuCoresThreads { get => _cpuCoresThreads; set => SetProperty(ref _cpuCoresThreads, value); }
     public string CpuCaches { get => _cpuCaches; set => SetProperty(ref _cpuCaches, value); }
     public string CpuTdp { get => _cpuTdp; set => SetProperty(ref _cpuTdp, value); }
+    public TemperatureStatus GpuTemperatureStatus { get => _gpuTemperatureStatus; set => SetProperty(ref _gpuTemperatureStatus, value); }
     public string GpuTemperature { get => _gpuTemperature; set => SetProperty(ref _gpuTemperature, value); }
     public string GpuMinTemperature { get => _gpuMinTemperature; set => SetProperty(ref _gpuMinTemperature, value); }
     public string GpuMaxTemperature { get => _gpuMaxTemperature; set => SetProperty(ref _gpuMaxTemperature, value); }
@@ -242,10 +306,12 @@ public sealed class DriveTemperatureViewModel : INotifyPropertyChanged
             CpuCaches = snapshot.CpuCaches;
             CpuTdp = snapshot.CpuTdp;
             CpuTemperature = FormatTemperature(snapshot.CpuTemperatureValue);
+            CpuTemperatureStatus = TemperatureStatusService.Evaluate(TemperatureCategory.Cpu, snapshot.CpuTemperatureValue);
             CpuUsage = snapshot.CpuUsage;
             CpuPower = snapshot.CpuPower;
             GpuModel = snapshot.GpuName;
             GpuTemperature = FormatTemperature(snapshot.GpuTemperatureValue);
+            GpuTemperatureStatus = TemperatureStatusService.Evaluate(TemperatureCategory.Gpu, snapshot.GpuTemperatureValue);
             GpuClock = snapshot.GpuClock;
             GpuRam = snapshot.GpuRam;
             GpuBus = snapshot.GpuBus;
@@ -263,11 +329,30 @@ public sealed class DriveTemperatureViewModel : INotifyPropertyChanged
             Bios = snapshot.Bios;
             OsVersion = snapshot.OsVersion;
 
-            StorageDrives.Clear();
             foreach (StorageHealthSnapshot drive in snapshot.StorageDrives)
             {
-                StorageDrives.Add(ConvertDriveTemperature(drive));
+                StorageHealthSnapshot formattedDrive = ConvertDriveTemperature(drive);
+                StorageDriveViewModel? existingStorageDrive = StorageDrives.FirstOrDefault(item => item.Name == drive.Name);
+
+                if (existingStorageDrive == null)
+                {
+                    StorageDrives.Add(new StorageDriveViewModel(formattedDrive));
+                }
+                else
+                {
+                    existingStorageDrive.Update(formattedDrive);
+                }
             }
+
+            for (int i = StorageDrives.Count - 1; i >= 0; i--)
+            {
+                if (!snapshot.StorageDrives.Any(drive => drive.Name == StorageDrives[i].Name))
+                {
+                    StorageDrives.RemoveAt(i);
+                }
+            }
+
+            RequestSmartctlRefresh();
 
             // Update per-drive temperature viewmodels used in the Temps card (maintain history)
             // Keep existing DriveTemperatures in sync with snapshot.StorageDrives
@@ -282,19 +367,21 @@ public sealed class DriveTemperatureViewModel : INotifyPropertyChanged
 
                 existing.Temperature = FormatTemperature(drive.TemperatureValue);
                 existing.TemperatureValue = drive.TemperatureValue;
-                AddHistoryPoint(existing.History, drive.TemperatureValue);
+                existing.TemperatureStatus = TemperatureStatusService.Evaluate(TemperatureCategory.Storage, drive.TemperatureValue);
+                AddHistoryPoint(existing.History, drive.TemperatureValue, requireAvailableTemperature: true);
 
                 // Update per-drive tracked min/max and formatted labels
-                if (drive.TemperatureValue.HasValue)
+                if (TemperatureStatusService.IsAvailableTemperature(drive.TemperatureValue))
                 {
-                    if (!existing.MinValue.HasValue || drive.TemperatureValue.Value < existing.MinValue.Value)
+                    float driveTemperature = drive.TemperatureValue.GetValueOrDefault();
+                    if (!existing.MinValue.HasValue || driveTemperature < existing.MinValue.Value)
                     {
-                        existing.MinValue = drive.TemperatureValue.Value;
+                        existing.MinValue = driveTemperature;
                     }
 
-                    if (!existing.MaxValue.HasValue || drive.TemperatureValue.Value > existing.MaxValue.Value)
+                    if (!existing.MaxValue.HasValue || driveTemperature > existing.MaxValue.Value)
                     {
-                        existing.MaxValue = drive.TemperatureValue.Value;
+                        existing.MaxValue = driveTemperature;
                     }
                 }
 
@@ -343,15 +430,15 @@ public sealed class DriveTemperatureViewModel : INotifyPropertyChanged
 
             float? hottestDisk = snapshot.StorageDrives
                 .Select(d => d.TemperatureValue)
-                .Where(v => v.HasValue)
+                .Where(TemperatureStatusService.IsAvailableTemperature)
                 .DefaultIfEmpty()
                 .Max();
             DiskMinTemperature = FormatTrackedMinimum(hottestDisk, ref _diskMinTemperatureValue, "C");
             DiskMaxTemperature = FormatTrackedMaximum(hottestDisk, ref _diskMaxTemperatureValue, "C");
 
-            AddHistoryPoint(CpuTemperatureHistory, snapshot.CpuTemperatureValue);
+            AddHistoryPoint(CpuTemperatureHistory, snapshot.CpuTemperatureValue, requireAvailableTemperature: true);
             AddHistoryPoint(CpuUsageHistory, snapshot.CpuUsageValue);
-            AddHistoryPoint(GpuTemperatureHistory, snapshot.GpuTemperatureValue);
+            AddHistoryPoint(GpuTemperatureHistory, snapshot.GpuTemperatureValue, requireAvailableTemperature: true);
             AddHistoryPoint(GpuUsageHistory, snapshot.GpuUsageValue);
             _audioAlertService.ProcessSnapshot(snapshot, AudioAlertsEnabled);
         }
@@ -360,6 +447,58 @@ public sealed class DriveTemperatureViewModel : INotifyPropertyChanged
             Debug.WriteLine($"RefreshData failed: {ex}");
             ApplyUnavailableHardwareState();
         }
+    }
+
+    private void RequestSmartctlRefresh()
+    {
+        if (_smartctlRefreshInProgress || DateTime.UtcNow < _nextSmartctlRefreshUtc)
+        {
+            return;
+        }
+
+        _smartctlRefreshInProgress = true;
+        _nextSmartctlRefreshUtc = DateTime.UtcNow.AddMinutes(5);
+        _ = RefreshSmartctlAsync();
+    }
+
+    private async Task RefreshSmartctlAsync()
+    {
+        try
+        {
+            SmartctlRefreshResult result = await _smartctlService.GetReportsAsync().ConfigureAwait(true);
+            foreach (StorageDriveViewModel drive in StorageDrives)
+            {
+                SmartctlDriveReport? report = result.Reports.FirstOrDefault(candidate => IsSmartctlMatch(drive.Name, candidate));
+                drive.UpdateSmartctlData(report, result.IsAvailable ? "SMART details unavailable for this device." : result.StatusMessage);
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Smartctl refresh failed: {ex}");
+        }
+        finally
+        {
+            _smartctlRefreshInProgress = false;
+        }
+    }
+
+    private static bool IsSmartctlMatch(string hardwareName, SmartctlDriveReport candidate)
+    {
+        string left = NormalizeDriveName(hardwareName);
+        if (string.IsNullOrWhiteSpace(left))
+        {
+            return false;
+        }
+
+        return new[] { candidate.Model, candidate.Device.InfoName }
+            .Select(NormalizeDriveName)
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .Any(right => left.Contains(right, StringComparison.Ordinal) || right.Contains(left, StringComparison.Ordinal));
+    }
+
+    private static string NormalizeDriveName(string? value)
+    {
+        return new string((value ?? string.Empty).Where(char.IsLetterOrDigit).ToArray()).ToUpperInvariant();
     }
 
 
@@ -428,9 +567,11 @@ public sealed class DriveTemperatureViewModel : INotifyPropertyChanged
     private void ApplyUnavailableHardwareState()
     {
         CpuTemperature = "N/A";
+        CpuTemperatureStatus = TemperatureStatus.Unavailable(TemperatureThresholds.Cpu);
         CpuUsage = "N/A";
         CpuPower = "N/A";
         GpuTemperature = "N/A";
+        GpuTemperatureStatus = TemperatureStatus.Unavailable(TemperatureThresholds.Gpu);
         GpuUsage = "N/A";
         GpuPower = "N/A";
         DiskTemperature = "N/A";
@@ -439,14 +580,18 @@ public sealed class DriveTemperatureViewModel : INotifyPropertyChanged
         StorageDrives.Clear();
         DriveTemperatures.Clear();
     }
-    private static void AddHistoryPoint(ObservableCollection<double> history, float? value)
+    private static void AddHistoryPoint(ObservableCollection<double> history, float? value, bool requireAvailableTemperature = false)
     {
-        if (!value.HasValue)
+        bool hasUsableValue = requireAvailableTemperature
+            ? TemperatureStatusService.IsAvailableTemperature(value)
+            : value.HasValue && !float.IsNaN(value.Value) && !float.IsInfinity(value.Value);
+
+        if (!hasUsableValue)
         {
             return;
         }
 
-        history.Add(value.Value);
+        history.Add(value.GetValueOrDefault());
 
         while (history.Count > MaxHistoryPoints)
         {
@@ -456,9 +601,9 @@ public sealed class DriveTemperatureViewModel : INotifyPropertyChanged
 
     private string FormatTrackedMinimum(float? value, ref float? tracked, string unit)
     {
-        if (value.HasValue && (!tracked.HasValue || value.Value < tracked.Value))
+        if (IsTrackableMetric(value, unit) && (!tracked.HasValue || value.GetValueOrDefault() < tracked.Value))
         {
-            tracked = value.Value;
+            tracked = value.GetValueOrDefault();
         }
 
         return FormatMetric(tracked, unit);
@@ -466,12 +611,22 @@ public sealed class DriveTemperatureViewModel : INotifyPropertyChanged
 
     private string FormatTrackedMaximum(float? value, ref float? tracked, string unit)
     {
-        if (value.HasValue && (!tracked.HasValue || value.Value > tracked.Value))
+        if (IsTrackableMetric(value, unit) && (!tracked.HasValue || value.GetValueOrDefault() > tracked.Value))
         {
-            tracked = value.Value;
+            tracked = value.GetValueOrDefault();
         }
 
         return FormatMetric(tracked, unit);
+    }
+
+    private static bool IsTrackableMetric(float? value, string unit)
+    {
+        if (unit == "C")
+        {
+            return TemperatureStatusService.IsAvailableTemperature(value);
+        }
+
+        return value.HasValue && !float.IsNaN(value.Value) && !float.IsInfinity(value.Value);
     }
 
     private StorageHealthSnapshot ConvertDriveTemperature(StorageHealthSnapshot drive)
@@ -481,12 +636,13 @@ public sealed class DriveTemperatureViewModel : INotifyPropertyChanged
 
     private string FormatTemperature(float? celsius)
     {
-        if (!celsius.HasValue || float.IsNaN(celsius.Value) || float.IsInfinity(celsius.Value))
+        if (!TemperatureStatusService.IsAvailableTemperature(celsius))
         {
             return "N/A";
         }
 
-        double value = _useFahrenheit ? celsius.Value * 9d / 5d + 32d : celsius.Value;
+        float celsiusValue = celsius.GetValueOrDefault();
+        double value = _useFahrenheit ? celsiusValue * 9d / 5d + 32d : celsiusValue;
         string unit = _useFahrenheit ? "F" : "C";
         return $"{value:0.#} {unit}";
     }
@@ -510,3 +666,9 @@ public sealed class DriveTemperatureViewModel : INotifyPropertyChanged
         _disposed = true;
     }
 }
+
+
+
+
+
+

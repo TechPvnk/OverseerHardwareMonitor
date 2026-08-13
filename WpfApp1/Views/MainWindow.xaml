@@ -1,34 +1,119 @@
-<Window x:Class="Overseer.MainWindow"
+﻿<Window x:Class="Overseer.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:views="clr-namespace:Overseer.Views"
+        xmlns:services="clr-namespace:Overseer.Services"
         mc:Ignorable="d"
         Icon="/Themes/favicon.ico"
         Title="Overseer - Hardware Monitor" Height="720" Width="980" MinHeight="620" MinWidth="840"
-        Background="{StaticResource BackgroundBrush}" Foreground="{StaticResource TextBrush}"
+        Background="#121212" Foreground="{StaticResource TextBrush}" FontFamily="Segoe UI"
         KeyDown="Window_KeyDown">
 
     <Window.Resources>
+        <views:TemperatureStatusBrushConverter x:Key="TemperatureStatusBrushConverter"/>
+        <DataTemplate DataType="{x:Type services:SmartctlDriveReport}">
+            <Border Background="#141516" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="3" Padding="10" Margin="0,12,0,0">
+                <StackPanel>
+                    <TextBlock Text="SMARTCTL DEVICE REPORT" Style="{StaticResource SectionLabelTextStyle}"/>
+                    <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource MetricTextStyle}" Foreground="{StaticResource MutedTextBrush}" Margin="0,4,0,0" TextWrapping="Wrap"/>
+                    <Grid Margin="0,8,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="110"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="110"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Text="Model" Style="{StaticResource MetricTextStyle}"/><TextBlock Grid.Column="1" Text="{Binding Model}" Style="{StaticResource MetricTextStyle}" Foreground="{StaticResource TextBrush}"/>
+                        <TextBlock Grid.Column="2" Text="Firmware" Style="{StaticResource MetricTextStyle}"/><TextBlock Grid.Column="3" Text="{Binding FirmwareVersion}" Style="{StaticResource MetricTextStyle}" Foreground="{StaticResource TextBrush}"/>
+                        <TextBlock Grid.Row="1" Text="Serial" Style="{StaticResource MetricTextStyle}"/><TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding SerialNumber}" Style="{StaticResource MetricTextStyle}" Foreground="{StaticResource TextBrush}"/>
+                        <TextBlock Grid.Row="1" Grid.Column="2" Text="Capacity" Style="{StaticResource MetricTextStyle}"/><TextBlock Grid.Row="1" Grid.Column="3" Text="{Binding Capacity}" Style="{StaticResource MetricTextStyle}" Foreground="{StaticResource TextBrush}"/>
+                        <TextBlock Grid.Row="2" Text="Protocol" Style="{StaticResource MetricTextStyle}"/><TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Protocol}" Style="{StaticResource MetricTextStyle}" Foreground="{StaticResource TelemetryBrush}"/>
+                        <TextBlock Grid.Row="2" Grid.Column="2" Text="SMART status" Style="{StaticResource MetricTextStyle}"/><TextBlock Grid.Row="2" Grid.Column="3" Text="{Binding SmartPassed}" Style="{StaticResource MetricTextStyle}" Foreground="{StaticResource TelemetryBrush}"/>
+                    </Grid>
+
+                    <StackPanel x:Name="NvmeHealthPanel">
+                        <StackPanel.Style>
+                            <Style TargetType="StackPanel">
+                                <Style.Triggers><DataTrigger Binding="{Binding NvmeHealth}" Value="{x:Null}"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers>
+                            </Style>
+                        </StackPanel.Style>
+                        <TextBlock Text="NVME SMART / HEALTH ATTRIBUTES" Style="{StaticResource SectionLabelTextStyle}" Margin="0,12,0,5"/>
+                        <Grid Background="#202123">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="42"/><ColumnDefinition Width="*"/><ColumnDefinition Width="120"/><ColumnDefinition Width="120"/><ColumnDefinition Width="120"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="ID" Style="{StaticResource MetricTextStyle}" Margin="5,3"/><TextBlock Grid.Column="1" Text="ATTRIBUTE" Style="{StaticResource MetricTextStyle}" Margin="5,3"/><TextBlock Grid.Column="2" Text="CURRENT" Style="{StaticResource MetricTextStyle}" Margin="5,3"/><TextBlock Grid.Column="3" Text="THRESHOLD" Style="{StaticResource MetricTextStyle}" Margin="5,3"/><TextBlock Grid.Column="4" Text="RAW" Style="{StaticResource MetricTextStyle}" Margin="5,3"/>
+                        </Grid>
+                        <ItemsControl ItemsSource="{Binding NvmeHealth.Attributes}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Background="#18191A">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="42"/><ColumnDefinition Width="*"/><ColumnDefinition Width="120"/><ColumnDefinition Width="120"/><ColumnDefinition Width="120"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="{Binding Id}" Style="{StaticResource MetricTextStyle}" Margin="5,2"/><TextBlock Grid.Column="1" Text="{Binding Name}" Style="{StaticResource MetricTextStyle}" Margin="5,2"/><TextBlock Grid.Column="2" Text="{Binding Current}" Style="{StaticResource MetricTextStyle}" Foreground="{StaticResource TelemetryBrush}" Margin="5,2"/><TextBlock Grid.Column="3" Text="{Binding Threshold}" Style="{StaticResource MetricTextStyle}" Margin="5,2"/><TextBlock Grid.Column="4" Text="{Binding RawValue}" Style="{StaticResource MetricTextStyle}" Margin="5,2"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+
+                    <StackPanel x:Name="AtaAttributesPanel">
+                        <StackPanel.Style>
+                            <Style TargetType="StackPanel">
+                                <Style.Triggers><DataTrigger Binding="{Binding AtaAttributes.Count}" Value="0"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers>
+                            </Style>
+                        </StackPanel.Style>
+                    <TextBlock Text="SATA SMART ATTRIBUTES" Style="{StaticResource SectionLabelTextStyle}" Margin="0,12,0,5"/>
+                    <Grid Background="#202123">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="42"/><ColumnDefinition Width="*"/><ColumnDefinition Width="52"/><ColumnDefinition Width="52"/><ColumnDefinition Width="62"/><ColumnDefinition Width="120"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="ID" Style="{StaticResource MetricTextStyle}" Margin="5,3"/><TextBlock Grid.Column="1" Text="ATTRIBUTE" Style="{StaticResource MetricTextStyle}" Margin="5,3"/><TextBlock Grid.Column="2" Text="VALUE" Style="{StaticResource MetricTextStyle}" Margin="5,3"/><TextBlock Grid.Column="3" Text="WORST" Style="{StaticResource MetricTextStyle}" Margin="5,3"/><TextBlock Grid.Column="4" Text="THRESH" Style="{StaticResource MetricTextStyle}" Margin="5,3"/><TextBlock Grid.Column="5" Text="RAW" Style="{StaticResource MetricTextStyle}" Margin="5,3"/>
+                    </Grid>
+                    <ItemsControl ItemsSource="{Binding AtaAttributes}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Background="#18191A">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="42"/><ColumnDefinition Width="*"/><ColumnDefinition Width="52"/><ColumnDefinition Width="52"/><ColumnDefinition Width="62"/><ColumnDefinition Width="120"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="{Binding Id}" Style="{StaticResource MetricTextStyle}" Margin="5,2"/><TextBlock Grid.Column="1" Text="{Binding Name}" Style="{StaticResource MetricTextStyle}" Margin="5,2"/><TextBlock Grid.Column="2" Text="{Binding Value}" Style="{StaticResource MetricTextStyle}" Margin="5,2"/><TextBlock Grid.Column="3" Text="{Binding Worst}" Style="{StaticResource MetricTextStyle}" Margin="5,2"/><TextBlock Grid.Column="4" Text="{Binding Threshold}" Style="{StaticResource MetricTextStyle}" Margin="5,2"/><TextBlock Grid.Column="5" Text="{Binding RawValue}" Style="{StaticResource MetricTextStyle}" Margin="5,2"/>
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </DataTemplate>
         <Style TargetType="TabItem">
-            <Setter Property="Background" Value="#333333"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="Padding" Value="12,6"/>
+            <Setter Property="FontFamily" Value="{StaticResource DisplayFont}"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Background" Value="{StaticResource CardBrush}"/>
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="Padding" Value="14,7"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="TabItem">
-                        <Border Name="Border" Background="{TemplateBinding Background}" BorderBrush="#3F3F3F" BorderThickness="1,1,1,0" CornerRadius="4,4,0,0" Margin="2,0">
+                        <Border Name="Border" Background="{TemplateBinding Background}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1,1,1,0" CornerRadius="3,3,0,0" Margin="2,0">
                             <ContentPresenter x:Name="ContentSite" VerticalAlignment="Center" HorizontalAlignment="Center" ContentSource="Header" Margin="{TemplateBinding Padding}" RecognizesAccessKey="True"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="Border" Property="Background" Value="#2D2D2D"/>
-                                <Setter Property="Foreground" Value="#FF3B30"/>
+                                <Setter TargetName="Border" Property="Background" Value="{StaticResource PanelBrush}"/>
+                                <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
                             </Trigger>
                             <Trigger Property="IsSelected" Value="False">
-                                <Setter TargetName="Border" Property="Background" Value="#252526"/>
-                                <Setter Property="Foreground" Value="#FF3B30"/>
+                                <Setter TargetName="Border" Property="Background" Value="{StaticResource CardInsetBrush}"/>
+                                <Setter Property="Foreground" Value="{StaticResource MutedTextBrush}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -40,10 +125,11 @@
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="54"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <Menu Background="{StaticResource MenuBrush}" Foreground="{StaticResource TextBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
+        <Menu Background="black" Foreground="{StaticResource TextBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
             <MenuItem Header="_File">
                 <MenuItem Header="Export data" InputGestureText="Ctrl+S">
                     <MenuItem Header="txt" Click="ExportTxtMenuItem_Click"/>
@@ -101,28 +187,44 @@
             </MenuItem>
         </Menu>
 
-        <TabControl x:Name="MainTabControl" Grid.Row="1" Margin="15" Background="#2D2D2D" Foreground="White" BorderBrush="#3F3F3F">
+        <Border Grid.Row="1" Background="#101112" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="20,0">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="OVERSEER" FontFamily="{StaticResource DisplayFont}" FontSize="18" FontWeight="Bold" Foreground="{StaticResource TextBrush}"/>
+                    <TextBlock Text="HARDWARE TELEMETRY  //  LIVE SENSOR STATUS" FontFamily="{StaticResource DisplayFont}" FontSize="10" Foreground="{StaticResource MutedTextBrush}" Margin="0,2,0,0"/>
+                </StackPanel>
+                <Image Grid.Column="1" Source="/Themes/overseer-brand.png" Height="42" Width="142" Stretch="Uniform" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+            </Grid>
+        </Border>
+
+        <TabControl x:Name="MainTabControl" Grid.Row="2" Margin="15,12,15,15" Background="{StaticResource BackgroundBrush}" Foreground="{StaticResource TextBrush}" BorderBrush="{StaticResource BorderBrush}">
 
             <TabItem Header="Temps">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
-                    <StackPanel Margin="16">
-                        <Border Background="#252526" CornerRadius="6" Padding="14" BorderBrush="#3F3F3F" BorderThickness="1" Margin="0,0,0,12">
+                    <StackPanel Margin="18">
+                        <Border Style="{StaticResource ContentCardStyle}" Background="{StaticResource CardInsetBrush}" Margin="0,0,0,10">
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="230"/>
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
-                                <StackPanel>
-                                    <TextBlock Text="CPU" FontWeight="Bold" Foreground="#FF3B30"/>
-                                    <TextBlock Text="{Binding CpuModel}" Foreground="#9A9A9A" TextTrimming="CharacterEllipsis"/>
-                                    <TextBlock Text="{Binding CpuTemperature}" FontSize="30" FontWeight="Bold" Foreground="#FF3B30" Margin="0,12,0,0"/>
+                                <Rectangle Grid.ColumnSpan="2" Width="3" HorizontalAlignment="Left" RadiusX="1.5" RadiusY="1.5" Fill="{Binding CpuTemperatureStatus, Converter={StaticResource TemperatureStatusBrushConverter}}" Opacity="0.85"/>
+                                <StackPanel Margin="10,0,0,0">
+                                    <TextBlock Text="CPU" Style="{StaticResource SectionLabelTextStyle}"/>
+                                    <TextBlock Text="{Binding CpuModel}" Style="{StaticResource CardTitleTextStyle}" TextTrimming="CharacterEllipsis" Margin="0,2,0,0"/>
+                                    <TextBlock Text="{Binding CpuTemperature}" FontFamily="{StaticResource DisplayFont}" FontSize="32" FontWeight="Bold" Foreground="{Binding CpuTemperatureStatus, Converter={StaticResource TemperatureStatusBrushConverter}}" Margin="0,10,0,0"/>
+                                    <views:TemperatureStatusBar Status="{Binding CpuTemperatureStatus}" Height="5" Margin="0,7,24,0"/>
                                     <UniformGrid Columns="2" Margin="0,8,0,0">
-                                        <TextBlock Text="{Binding CpuMinTemperature, StringFormat=Min {0}}" Foreground="#BDBDBD"/>
-                                        <TextBlock Text="{Binding CpuMaxTemperature, StringFormat=Max {0}}" Foreground="#BDBDBD"/>
-                                        <TextBlock Text="{Binding CpuUsage, StringFormat=Usage {0}}" Foreground="#BDBDBD"/>
-                                        <TextBlock Text="{Binding CpuPower, StringFormat=Power {0}}" Foreground="#BDBDBD"/>
-                                        <TextBlock Text="{Binding CpuMinPower, StringFormat=Min W {0}}" Foreground="#BDBDBD"/>
-                                        <TextBlock Text="{Binding CpuMaxPower, StringFormat=Max W {0}}" Foreground="#BDBDBD"/>
+                                        <TextBlock Text="{Binding CpuMinTemperature, StringFormat=Min {0}}" Style="{StaticResource MetricTextStyle}"/>
+                                        <TextBlock Text="{Binding CpuMaxTemperature, StringFormat=Max {0}}" Style="{StaticResource MetricTextStyle}"/>
+                                        <TextBlock Text="{Binding CpuUsage, StringFormat=Usage {0}}" Style="{StaticResource MetricTextStyle}"/>
+                                        <TextBlock Text="{Binding CpuPower, StringFormat=Power {0}}" Style="{StaticResource MetricTextStyle}"/>
+                                        <TextBlock Text="{Binding CpuMinPower, StringFormat=Min W {0}}" Style="{StaticResource MetricTextStyle}"/>
+                                        <TextBlock Text="{Binding CpuMaxPower, StringFormat=Max W {0}}" Style="{StaticResource MetricTextStyle}"/>
                                     </UniformGrid>
                                 </StackPanel>
                                 <Grid Grid.Column="1" Margin="16,0,0,0">
@@ -131,29 +233,31 @@
                                         <RowDefinition Height="8"/>
                                         <RowDefinition Height="*"/>
                                     </Grid.RowDefinitions>
-                                    <views:Sparkline Values="{Binding CpuTemperatureHistory}" MaxValue="110" Stroke="#FF3B30" Height="88"/>
-                                    <views:Sparkline Grid.Row="2" Values="{Binding CpuUsageHistory}" MaxValue="100" Stroke="#FF6A00" Height="88"/>
+                                    <views:Sparkline Values="{Binding CpuTemperatureHistory}" MaxValue="110" Stroke="{Binding CpuTemperatureStatus, Converter={StaticResource TemperatureStatusBrushConverter}}" ShowAxisLabels="True" Height="88"/>
+                                    <views:Sparkline Grid.Row="2" Values="{Binding CpuUsageHistory}" MaxValue="100" Stroke="{StaticResource TelemetryBrush}" Height="88"/>
                                 </Grid>
                             </Grid>
                         </Border>
 
-                        <Border Background="#252526" CornerRadius="6" Padding="14" BorderBrush="#3F3F3F" BorderThickness="1" Margin="0,0,0,12">
+                        <Border Style="{StaticResource ContentCardStyle}" Background="{StaticResource CardInsetBrush}" Margin="0,0,0,10">
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="230"/>
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
-                                <StackPanel>
-                                    <TextBlock Text="GPU" FontWeight="Bold" Foreground="#FF3B30"/>
-                                    <TextBlock Text="{Binding GpuModel}" Foreground="#9A9A9A" TextTrimming="CharacterEllipsis"/>
-                                    <TextBlock Text="{Binding GpuTemperature}" FontSize="30" FontWeight="Bold" Foreground="#FF3B30" Margin="0,12,0,0"/>
+                                <Rectangle Grid.ColumnSpan="2" Width="3" HorizontalAlignment="Left" RadiusX="1.5" RadiusY="1.5" Fill="{Binding GpuTemperatureStatus, Converter={StaticResource TemperatureStatusBrushConverter}}" Opacity="0.85"/>
+                                <StackPanel Margin="10,0,0,0">
+                                    <TextBlock Text="GPU" Style="{StaticResource SectionLabelTextStyle}"/>
+                                    <TextBlock Text="{Binding GpuModel}" Style="{StaticResource CardTitleTextStyle}" TextTrimming="CharacterEllipsis" Margin="0,2,0,0"/>
+                                    <TextBlock Text="{Binding GpuTemperature}" FontFamily="{StaticResource DisplayFont}" FontSize="32" FontWeight="Bold" Foreground="{Binding GpuTemperatureStatus, Converter={StaticResource TemperatureStatusBrushConverter}}" Margin="0,10,0,0"/>
+                                    <views:TemperatureStatusBar Status="{Binding GpuTemperatureStatus}" Height="5" Margin="0,7,24,0"/>
                                     <UniformGrid Columns="2" Margin="0,8,0,0">
-                                        <TextBlock Text="{Binding GpuMinTemperature, StringFormat=Min {0}}" Foreground="#BDBDBD"/>
-                                        <TextBlock Text="{Binding GpuMaxTemperature, StringFormat=Max {0}}" Foreground="#BDBDBD"/>
-                                        <TextBlock Text="{Binding GpuUsage, StringFormat=Usage {0}}" Foreground="#BDBDBD"/>
-                                        <TextBlock Text="{Binding GpuPower, StringFormat=Power {0}}" Foreground="#BDBDBD"/>
-                                        <TextBlock Text="{Binding GpuMinPower, StringFormat=Min W {0}}" Foreground="#BDBDBD"/>
-                                        <TextBlock Text="{Binding GpuMaxPower, StringFormat=Max W {0}}" Foreground="#BDBDBD"/>
+                                        <TextBlock Text="{Binding GpuMinTemperature, StringFormat=Min {0}}" Style="{StaticResource MetricTextStyle}"/>
+                                        <TextBlock Text="{Binding GpuMaxTemperature, StringFormat=Max {0}}" Style="{StaticResource MetricTextStyle}"/>
+                                        <TextBlock Text="{Binding GpuUsage, StringFormat=Usage {0}}" Style="{StaticResource MetricTextStyle}"/>
+                                        <TextBlock Text="{Binding GpuPower, StringFormat=Power {0}}" Style="{StaticResource MetricTextStyle}"/>
+                                        <TextBlock Text="{Binding GpuMinPower, StringFormat=Min W {0}}" Style="{StaticResource MetricTextStyle}"/>
+                                        <TextBlock Text="{Binding GpuMaxPower, StringFormat=Max W {0}}" Style="{StaticResource MetricTextStyle}"/>
                                     </UniformGrid>
                                 </StackPanel>
                                 <Grid Grid.Column="1" Margin="16,0,0,0">
@@ -162,20 +266,20 @@
                                         <RowDefinition Height="8"/>
                                         <RowDefinition Height="*"/>
                                     </Grid.RowDefinitions>
-                                    <views:Sparkline Values="{Binding GpuTemperatureHistory}" MaxValue="110" Stroke="#FF3B30" Height="88"/>
-                                    <views:Sparkline Grid.Row="2" Values="{Binding GpuUsageHistory}" MaxValue="100" Stroke="#FF6A00" Height="88"/>
+                                    <views:Sparkline Values="{Binding GpuTemperatureHistory}" MaxValue="110" Stroke="{Binding GpuTemperatureStatus, Converter={StaticResource TemperatureStatusBrushConverter}}" ShowAxisLabels="True" Height="88"/>
+                                    <views:Sparkline Grid.Row="2" Values="{Binding GpuUsageHistory}" MaxValue="100" Stroke="{StaticResource TelemetryBrush}" Height="88"/>
                                 </Grid>
                             </Grid>
                         </Border>
 
-                        <Border Background="#252526" CornerRadius="6" Padding="14" BorderBrush="#3F3F3F" BorderThickness="1">
+                        <Border Style="{StaticResource ContentCardStyle}" Background="{StaticResource CardInsetBrush}">
                             <StackPanel>
-                                <TextBlock Text="Drives" FontWeight="Bold" Foreground="#FF3B30"/>
+                                <TextBlock Text="DRIVE TEMPERATURES" Style="{StaticResource SectionLabelTextStyle}"/>
 
                                 <ItemsControl ItemsSource="{Binding DriveTemperatures}" Margin="0,8,0,0">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
-                                            <Border Background="Transparent" Padding="8" Margin="0,0,0,8">
+                                            <Border Background="Transparent" Padding="8" Margin="0,0,0,8" BorderBrush="{Binding TemperatureStatus, Converter={StaticResource TemperatureStatusBrushConverter}}" BorderThickness="1,0,0,0">
                                                 <Grid>
                                                     <Grid.ColumnDefinitions>
                                                         <ColumnDefinition Width="230"/>
@@ -183,15 +287,16 @@
                                                     </Grid.ColumnDefinitions>
 
                                                     <StackPanel>
-                                                        <TextBlock Text="{Binding Name}" FontWeight="Bold" Foreground="White"/>
-                                                        <TextBlock Text="{Binding Temperature}" FontSize="30" FontWeight="Bold" Foreground="#FF3B30" Margin="0,12,0,0"/>
+                                                        <TextBlock Text="{Binding Name}" Style="{StaticResource CardTitleTextStyle}"/>
+                                                        <TextBlock Text="{Binding Temperature}" FontFamily="{StaticResource DisplayFont}" FontSize="30" FontWeight="Bold" Foreground="{Binding TemperatureStatus, Converter={StaticResource TemperatureStatusBrushConverter}}" Margin="0,10,0,0"/>
+                                                        <views:TemperatureStatusBar Status="{Binding TemperatureStatus}" Height="5" Margin="0,7,24,0"/>
                                                         <UniformGrid Columns="2" Margin="0,8,0,0">
-                                                            <TextBlock Text="{Binding MinTemperature, StringFormat=Min {0}}" Foreground="#BDBDBD"/>
-                                                            <TextBlock Text="{Binding MaxTemperature, StringFormat=Max {0}}" Foreground="#BDBDBD"/>
+                                                            <TextBlock Text="{Binding MinTemperature, StringFormat=Min {0}}" Style="{StaticResource MetricTextStyle}"/>
+                                                            <TextBlock Text="{Binding MaxTemperature, StringFormat=Max {0}}" Style="{StaticResource MetricTextStyle}"/>
                                                         </UniformGrid>
                                                     </StackPanel>
 
-                                                    <views:Sparkline Grid.Column="1" Values="{Binding History}" MaxValue="110" Stroke="#FF3B30" Height="88" Margin="16,0,0,0"/>
+                                                    <views:Sparkline Grid.Column="1" Values="{Binding History}" MaxValue="110" Stroke="{Binding TemperatureStatus, Converter={StaticResource TemperatureStatusBrushConverter}}" ShowAxisLabels="True" Height="88" Margin="16,0,0,0"/>
                                                 </Grid>
                                             </Border>
                                         </DataTemplate>
@@ -204,136 +309,299 @@
             </TabItem>
 
             <TabItem Header="Disk Health">
-                <Grid Margin="15">
+                <Grid Margin="18">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
-                    <TextBlock Text="Connected Drives &amp; Health" FontSize="18" FontWeight="Bold" Margin="0,0,0,10" Foreground="#FF3B30"/>
+                    <StackPanel Margin="0,0,0,12">
+                        <TextBlock Text="STORAGE" Style="{StaticResource SectionLabelTextStyle}"/>
+                        <TextBlock Text="Connected Drives &amp; Health" FontFamily="{StaticResource DisplayFont}" FontSize="18" FontWeight="Bold" Foreground="{StaticResource TextBrush}" Margin="0,3,0,0"/>
+                    </StackPanel>
 
-                    <ItemsControl Grid.Row="1" ItemsSource="{Binding StorageDrives}">
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Background="{StaticResource CardInsetBrush}">
+                    <ItemsControl ItemsSource="{Binding StorageDrives}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Border Background="#252526" CornerRadius="5" Padding="10" Margin="0,0,0,8" BorderBrush="#3F3F3F" BorderThickness="1">
+                                <Border Style="{StaticResource ContentCardStyle}" Padding="0" Margin="0,0,0,8">
                                     <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="2*"/>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
 
-                                        <StackPanel Grid.Column="0">
-                                            <TextBlock Text="{Binding Name}" FontWeight="Bold" FontSize="14" Foreground="White"/>
-                                            <TextBlock Text="{Binding InterfaceType, StringFormat=Interface: {0}}" Foreground="#9CDCFE" Margin="0,4,0,0"/>
-                                            <TextBlock Text="{Binding ErrorFlag}" Foreground="#9CDCFE"/>
-                                        </StackPanel>
+                                        <ToggleButton x:Name="ExpandToggle" Background="Transparent" BorderThickness="0" Padding="12" HorizontalContentAlignment="Stretch" Cursor="Hand">
+                                            <ToggleButton.Template>
+                                                <ControlTemplate TargetType="ToggleButton">
+                                                    <Border x:Name="HeaderSurface" Background="Transparent" BorderBrush="Transparent" BorderThickness="1" CornerRadius="3" Padding="{TemplateBinding Padding}">
+                                                        <ContentPresenter/>
+                                                    </Border>
+                                                    <ControlTemplate.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter TargetName="HeaderSurface" Property="Background" Value="#25272A"/>
+                                                        </Trigger>
+                                                        <Trigger Property="IsChecked" Value="True">
+                                                            <Setter TargetName="HeaderSurface" Property="Background" Value="#202224"/>
+                                                            <Setter TargetName="HeaderSurface" Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+                                                        </Trigger>
+                                                    </ControlTemplate.Triggers>
+                                                </ControlTemplate>
+                                            </ToggleButton.Template>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="2*"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="22"/>
+                                                </Grid.ColumnDefinitions>
 
-                                        <UniformGrid Grid.Column="1" Columns="1" Margin="12,0,0,0">
-                                            <TextBlock Text="{Binding Temperature, StringFormat=Temp: {0}}" Foreground="#4EC9B0"/>
-                                            <TextBlock Text="{Binding LifeRemaining, StringFormat=Life Left: {0}}" Foreground="#DCDCAA"/>
-                                        </UniformGrid>
+                                                <StackPanel Grid.Column="0">
+                                                    <TextBlock Text="{Binding Name}" Style="{StaticResource CardTitleTextStyle}" FontSize="14"/>
+                                                    <TextBlock Text="{Binding InterfaceType, StringFormat=Interface: {0}}" Foreground="{StaticResource TelemetryBrush}" Margin="0,5,0,0" Style="{StaticResource MetricTextStyle}"/>
+                                                    <TextBlock Text="{Binding ErrorFlag}" Style="{StaticResource MetricTextStyle}"/>
+                                                </StackPanel>
 
-                                        <UniformGrid Grid.Column="2" Columns="1" Margin="12,0,0,0">
-                                            <TextBlock Text="{Binding TotalReads, StringFormat=Reads: {0}}" Foreground="#9CDCFE"/>
-                                            <TextBlock Text="{Binding TotalWrites, StringFormat=Writes: {0}}" Foreground="#9CDCFE"/>
-                                            <TextBlock Text="{Binding PowerOnCount, StringFormat=Power Cycles: {0}}" Foreground="#9CDCFE"/>
-                                            <TextBlock Text="{Binding PowerOnHours, StringFormat=Power Hours: {0}}" Foreground="#9CDCFE"/>
-                                        </UniformGrid>
+                                                <UniformGrid Grid.Column="1" Columns="1" Margin="12,0,0,0">
+                                                    <TextBlock Text="{Binding Temperature, StringFormat=Temp: {0}}" Foreground="{Binding TemperatureStatus, Converter={StaticResource TemperatureStatusBrushConverter}}" Style="{StaticResource MetricTextStyle}"/>
+                                                    <views:TemperatureStatusBar Status="{Binding TemperatureStatus}" Height="4" Margin="0,4,24,2"/>
+                                                    <TextBlock Text="{Binding LifeRemaining, StringFormat=Life Left: {0}}" Foreground="#DCDCAA" Margin="0,2,0,0" Style="{StaticResource MetricTextStyle}"/>
+                                                </UniformGrid>
 
-                                        <Border Grid.Column="3" Background="#333333" CornerRadius="4" Padding="8,4" VerticalAlignment="Center">
-                                            <TextBlock Text="{Binding HealthStatus}" FontWeight="Bold" Foreground="#4EC9B0" FontSize="12"/>
+                                                <UniformGrid Grid.Column="2" Columns="1" Margin="12,0,0,0">
+                                                    <TextBlock Text="{Binding TotalReads, StringFormat=Reads: {0}}" Foreground="{StaticResource TelemetryBrush}" Style="{StaticResource MetricTextStyle}"/>
+                                                    <TextBlock Text="{Binding TotalWrites, StringFormat=Writes: {0}}" Foreground="{StaticResource TelemetryBrush}" Style="{StaticResource MetricTextStyle}"/>
+                                                    <TextBlock Text="{Binding PowerOnCount, StringFormat=Power Cycles: {0}}" Foreground="{StaticResource TelemetryBrush}" Style="{StaticResource MetricTextStyle}"/>
+                                                    <TextBlock Text="{Binding PowerOnHours, StringFormat=Power Hours: {0}}" Foreground="{StaticResource TelemetryBrush}" Style="{StaticResource MetricTextStyle}"/>
+                                                </UniformGrid>
+
+                                                <Border Grid.Column="3" Background="#292A2C" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="3" Padding="9,5" VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding HealthStatus}" FontFamily="{StaticResource DisplayFont}" FontWeight="Bold" Foreground="#4EC9B0" FontSize="12"/>
+                                                </Border>
+                                                <Path x:Name="ExpandChevron" Grid.Column="4" Data="M 2 3 L 10 11 L 18 3" Stroke="{StaticResource AccentBrush}" StrokeThickness="1.8" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                    <Path.RenderTransform>
+                                                        <RotateTransform Angle="0" CenterX="10" CenterY="7"/>
+                                                    </Path.RenderTransform>
+                                                </Path>
+                                            </Grid>
+                                        </ToggleButton>
+
+                                        <Border x:Name="DetailsPanel" Grid.Row="1" Height="0" Opacity="0" ClipToBounds="True" Background="#171819" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0">
+                                            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                            <StackPanel>
+                                            <Grid Margin="12" Visibility="Collapsed">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                </Grid.RowDefinitions>
+
+                                                <TextBlock Grid.ColumnSpan="2" Text="SMART &amp; HEALTH DETAILS" Style="{StaticResource SectionLabelTextStyle}" Margin="0,0,0,8"/>
+
+                                                <Grid Grid.Row="1" Margin="0,0,14,0">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="145"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Text="Health status" Style="{StaticResource MetricTextStyle}"/>
+                                                    <TextBlock Grid.Column="1" Text="{Binding HealthStatus}" Foreground="#4EC9B0" Style="{StaticResource MetricTextStyle}"/>
+                                                </Grid>
+                                                <Grid Grid.Row="1" Grid.Column="1">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="145"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Text="Temperature" Style="{StaticResource MetricTextStyle}"/>
+                                                    <TextBlock Grid.Column="1" Text="{Binding Temperature}" Foreground="{Binding TemperatureStatus, Converter={StaticResource TemperatureStatusBrushConverter}}" Style="{StaticResource MetricTextStyle}"/>
+                                                </Grid>
+
+                                                <Grid Grid.Row="2" Margin="0,7,14,0">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="145"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Text="Life remaining" Style="{StaticResource MetricTextStyle}"/>
+                                                    <TextBlock Grid.Column="1" Text="{Binding LifeRemaining}" Foreground="#DCDCAA" Style="{StaticResource MetricTextStyle}"/>
+                                                </Grid>
+                                                <Grid Grid.Row="2" Grid.Column="1" Margin="0,7,0,0">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="145"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Text="Interface" Style="{StaticResource MetricTextStyle}"/>
+                                                    <TextBlock Grid.Column="1" Text="{Binding InterfaceType}" Foreground="{StaticResource TelemetryBrush}" Style="{StaticResource MetricTextStyle}"/>
+                                                </Grid>
+
+                                                <Grid Grid.Row="3" Margin="0,7,14,0">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="145"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Text="Total host reads" Style="{StaticResource MetricTextStyle}"/>
+                                                    <TextBlock Grid.Column="1" Text="{Binding TotalReads}" Foreground="{StaticResource TelemetryBrush}" Style="{StaticResource MetricTextStyle}"/>
+                                                </Grid>
+                                                <Grid Grid.Row="3" Grid.Column="1" Margin="0,7,0,0">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="145"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Text="Total host writes" Style="{StaticResource MetricTextStyle}"/>
+                                                    <TextBlock Grid.Column="1" Text="{Binding TotalWrites}" Foreground="{StaticResource TelemetryBrush}" Style="{StaticResource MetricTextStyle}"/>
+                                                </Grid>
+
+                                                <Grid Grid.Row="4" Margin="0,7,14,0">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="145"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Text="Power cycles" Style="{StaticResource MetricTextStyle}"/>
+                                                    <TextBlock Grid.Column="1" Text="{Binding PowerOnCount}" Foreground="{StaticResource TelemetryBrush}" Style="{StaticResource MetricTextStyle}"/>
+                                                </Grid>
+                                                <Grid Grid.Row="4" Grid.Column="1" Margin="0,7,0,0">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="145"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Text="Power-on hours" Style="{StaticResource MetricTextStyle}"/>
+                                                    <TextBlock Grid.Column="1" Text="{Binding PowerOnHours}" Foreground="{StaticResource TelemetryBrush}" Style="{StaticResource MetricTextStyle}"/>
+                                                </Grid>
+
+                                                <Grid Grid.Row="5" Margin="0,7,14,0">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="145"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Text="Reported errors" Style="{StaticResource MetricTextStyle}"/>
+                                                    <TextBlock Grid.Column="1" Text="{Binding ErrorFlag}" Style="{StaticResource MetricTextStyle}"/>
+                                                </Grid>
+
+                                                <ContentControl Grid.Row="6" Grid.ColumnSpan="2" Content="{Binding SmartctlData}"/>
+                                            </Grid>
+                                            <ContentControl Content="{Binding SmartctlData}" Margin="12"/>
+                                            </StackPanel>
+                                            </ScrollViewer>
                                         </Border>
                                     </Grid>
                                 </Border>
+                                <DataTemplate.Triggers>
+                                    <Trigger SourceName="ExpandToggle" Property="IsChecked" Value="True">
+                                        <Trigger.EnterActions>
+                                            <BeginStoryboard>
+                                                <Storyboard>
+                                                    <DoubleAnimation Storyboard.TargetName="DetailsPanel" Storyboard.TargetProperty="Height" To="540" Duration="0:0:0.28"/>
+                                                    <DoubleAnimation Storyboard.TargetName="DetailsPanel" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.16"/>
+                                                    <DoubleAnimation Storyboard.TargetName="ExpandChevron" Storyboard.TargetProperty="RenderTransform.Angle" To="180" Duration="0:0:0.18"/>
+                                                </Storyboard>
+                                            </BeginStoryboard>
+                                        </Trigger.EnterActions>
+                                        <Trigger.ExitActions>
+                                            <BeginStoryboard>
+                                                <Storyboard>
+                                                    <DoubleAnimation Storyboard.TargetName="DetailsPanel" Storyboard.TargetProperty="Height" To="0" Duration="0:0:0.18"/>
+                                                    <DoubleAnimation Storyboard.TargetName="DetailsPanel" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.12"/>
+                                                    <DoubleAnimation Storyboard.TargetName="ExpandChevron" Storyboard.TargetProperty="RenderTransform.Angle" To="0" Duration="0:0:0.16"/>
+                                                </Storyboard>
+                                            </BeginStoryboard>
+                                        </Trigger.ExitActions>
+                                    </Trigger>
+                                </DataTemplate.Triggers>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
+                    </ScrollViewer>
                 </Grid>
             </TabItem>
 
             <TabItem Header="System Info">
-                <Grid Margin="20">
+                <Grid Margin="18">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
 
                     <StackPanel>
-                        <Border Background="#252526" CornerRadius="6" Padding="15" BorderBrush="#3F3F3F" BorderThickness="1" Margin="0,0,0,12">
+                        <Border Style="{StaticResource ContentCardStyle}" Margin="0,0,0,10">
                             <StackPanel>
-                                <TextBlock Text="CPU Info" FontSize="12" Foreground="#FF3B30"/>
-                                <TextBlock Text="{Binding CpuModel}" FontSize="18" FontWeight="SemiBold" Foreground="White" TextWrapping="Wrap" Margin="0,6,0,0"/>
-                                <TextBlock Text="{Binding CpuClock, StringFormat=Clock: {0}}" Foreground="#BDBDBD" Margin="0,4,0,0"/>
-                                <TextBlock Text="{Binding CpuCoresThreads, StringFormat=Cores/Threads: {0}}" Foreground="#BDBDBD" Margin="0,2,0,0"/>
-                                <TextBlock Text="{Binding CpuCaches, StringFormat=Caches: {0}}" Foreground="#BDBDBD" Margin="0,2,0,0" TextWrapping="Wrap"/>
-                                <TextBlock Text="{Binding CpuTdp, StringFormat=TDP: {0}}" Foreground="#BDBDBD" Margin="0,2,0,0"/>
+                                <TextBlock Text="CPU" Style="{StaticResource SectionLabelTextStyle}"/>
+                                <TextBlock Text="{Binding CpuModel}" Style="{StaticResource CardTitleTextStyle}" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                                <TextBlock Text="{Binding CpuClock, StringFormat=Clock: {0}}" Style="{StaticResource MetricTextStyle}" Margin="0,6,0,0"/>
+                                <TextBlock Text="{Binding CpuCoresThreads, StringFormat=Cores/Threads: {0}}" Style="{StaticResource MetricTextStyle}" Margin="0,2,0,0"/>
+                                <TextBlock Text="{Binding CpuCaches, StringFormat=Caches: {0}}" Style="{StaticResource MetricTextStyle}" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                                <TextBlock Text="{Binding CpuTdp, StringFormat=TDP: {0}}" Style="{StaticResource MetricTextStyle}" Margin="0,2,0,0"/>
                             </StackPanel>
                         </Border>
 
-                        <Border Background="#252526" CornerRadius="6" Padding="15" BorderBrush="#3F3F3F" BorderThickness="1" Margin="0,0,0,12">
+                        <Border Style="{StaticResource ContentCardStyle}" Margin="0,0,0,10">
                             <StackPanel>
-                                <TextBlock Text="RAM" FontSize="12" Foreground="#FF3B30"/>
-                                <TextBlock Text="{Binding RamInfo}" FontSize="18" FontWeight="SemiBold" Foreground="White" Margin="0,6,0,0"/>
+                                <TextBlock Text="RAM" Style="{StaticResource SectionLabelTextStyle}"/>
+                                <TextBlock Text="{Binding RamInfo}" Style="{StaticResource CardTitleTextStyle}" Margin="0,6,0,0"/>
                                 <!-- Total and Clock are shown in the main RamInfo line; hide duplicate fields -->
                                 <ItemsControl ItemsSource="{Binding RamModulesList}" Margin="0,6,0,0">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
-                                            <TextBlock Text="{Binding}" Foreground="#9A9A9A"/>
+                                            <TextBlock Text="{Binding}" Style="{StaticResource MetricTextStyle}"/>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
                             </StackPanel>
                         </Border>
 
-                        <Border Background="#252526" CornerRadius="6" Padding="15" BorderBrush="#3F3F3F" BorderThickness="1">
+                        <Border Style="{StaticResource ContentCardStyle}">
                             <StackPanel>
-                                <TextBlock Text="GPU" FontSize="12" Foreground="#FF3B30"/>
-                                <TextBlock Text="{Binding GpuModel}" FontSize="18" FontWeight="SemiBold" Foreground="White" TextWrapping="Wrap" Margin="0,6,0,0"/>
-                                <TextBlock Text="{Binding GpuClock, StringFormat=Clock: {0}}" Foreground="#BDBDBD" Margin="0,4,0,0"/>
-                                <TextBlock Text="{Binding GpuRam, StringFormat=RAM: {0}}" Foreground="#BDBDBD" Margin="0,2,0,0"/>
-                                <TextBlock Text="{Binding GpuMemoryTotal, StringFormat=Memory Total: {0}}" Foreground="#BDBDBD" Margin="0,2,0,0"/>
-                                <TextBlock Text="{Binding GpuMemoryUsed, StringFormat=Memory Used: {0}}" Foreground="#BDBDBD" Margin="0,2,0,0"/>
-                                <TextBlock Text="{Binding GpuMemoryFree, StringFormat=Memory Free: {0}}" Foreground="#BDBDBD" Margin="0,2,0,0"/>
-                                <TextBlock Text="{Binding GpuBus, StringFormat=Bus: {0}}" Foreground="#BDBDBD" Margin="0,2,0,0"/>
+                                <TextBlock Text="GPU" Style="{StaticResource SectionLabelTextStyle}"/>
+                                <TextBlock Text="{Binding GpuModel}" Style="{StaticResource CardTitleTextStyle}" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                                <TextBlock Text="{Binding GpuClock, StringFormat=Clock: {0}}" Style="{StaticResource MetricTextStyle}" Margin="0,6,0,0"/>
+                                <TextBlock Text="{Binding GpuRam, StringFormat=RAM: {0}}" Style="{StaticResource MetricTextStyle}" Margin="0,2,0,0"/>
+                                <TextBlock Text="{Binding GpuMemoryTotal, StringFormat=Memory Total: {0}}" Style="{StaticResource MetricTextStyle}" Margin="0,2,0,0"/>
+                                <TextBlock Text="{Binding GpuMemoryUsed, StringFormat=Memory Used: {0}}" Style="{StaticResource MetricTextStyle}" Margin="0,2,0,0"/>
+                                <TextBlock Text="{Binding GpuMemoryFree, StringFormat=Memory Free: {0}}" Style="{StaticResource MetricTextStyle}" Margin="0,2,0,0"/>
+                                <TextBlock Text="{Binding GpuBus, StringFormat=Bus: {0}}" Style="{StaticResource MetricTextStyle}" Margin="0,2,0,0"/>
                             </StackPanel>
                         </Border>
                     </StackPanel>
 
-                    <StackPanel Grid.Column="1" Margin="12,0,0,0">
-                        <Border Background="#252526" CornerRadius="6" Padding="15" BorderBrush="#3F3F3F" BorderThickness="1" Margin="0,0,0,12">
+                    <StackPanel Grid.Column="1" Margin="10,0,0,0">
+                        <Border Style="{StaticResource ContentCardStyle}" Margin="0,0,0,10">
                             <StackPanel>
-                                <TextBlock Text="Motherboard" FontSize="12" Foreground="#FF3B30"/>
-                                <TextBlock Text="{Binding Motherboard}" FontSize="18" FontWeight="SemiBold" Foreground="White" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                                <TextBlock Text="MOTHERBOARD" Style="{StaticResource SectionLabelTextStyle}"/>
+                                <TextBlock Text="{Binding Motherboard}" Style="{StaticResource CardTitleTextStyle}" TextWrapping="Wrap" Margin="0,6,0,0"/>
                                 <ItemsControl ItemsSource="{Binding MotherboardSubHardware}" Margin="0,6,0,0">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
-                                            <TextBlock Text="{Binding}" Foreground="#9A9A9A"/>
+                                            <TextBlock Text="{Binding}" Style="{StaticResource MetricTextStyle}"/>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
                             </StackPanel>
                         </Border>
 
-                        <Border Background="#252526" CornerRadius="6" Padding="15" BorderBrush="#3F3F3F" BorderThickness="1" Margin="0,0,0,12">
+                        <Border Style="{StaticResource ContentCardStyle}" Margin="0,0,0,10">
                             <StackPanel>
-                                <TextBlock Text="BIOS" FontSize="12" Foreground="#FF3B30"/>
-                                <TextBlock Text="{Binding Bios}" FontSize="18" FontWeight="SemiBold" Foreground="White" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                                <TextBlock Text="BIOS" Style="{StaticResource SectionLabelTextStyle}"/>
+                                <TextBlock Text="{Binding Bios}" Style="{StaticResource CardTitleTextStyle}" TextWrapping="Wrap" Margin="0,6,0,0"/>
                             </StackPanel>
                         </Border>
 
-                        <Border Background="#252526" CornerRadius="6" Padding="15" BorderBrush="#3F3F3F" BorderThickness="1" Margin="0,0,0,12">
+                        <Border Style="{StaticResource ContentCardStyle}" Margin="0,0,0,10">
                             <StackPanel>
-                                <TextBlock Text="OS Version" FontSize="12" Foreground="#FF3B30"/>
-                                <TextBlock Text="{Binding OsVersion}" FontSize="18" FontWeight="SemiBold" Foreground="White" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                                <TextBlock Text="OPERATING SYSTEM" Style="{StaticResource SectionLabelTextStyle}"/>
+                                <TextBlock Text="{Binding OsVersion}" Style="{StaticResource CardTitleTextStyle}" TextWrapping="Wrap" Margin="0,6,0,0"/>
                             </StackPanel>
                         </Border>
 
-                        <Border Background="#252526" CornerRadius="6" Padding="15" BorderBrush="#3F3F3F" BorderThickness="1">
+                        <Border Style="{StaticResource ContentCardStyle}">
                             <StackPanel>
-                                <TextBlock Text="Battery" FontSize="12" Foreground="#FF3B30"/>
-                                <TextBlock Text="{Binding BatteryInfo}" FontSize="14" Foreground="#9A9A9A" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                                <TextBlock Text="BATTERY" Style="{StaticResource SectionLabelTextStyle}"/>
+                                <TextBlock Text="{Binding BatteryInfo}" Style="{StaticResource MetricTextStyle}" FontSize="14" TextWrapping="Wrap" Margin="0,6,0,0"/>
                             </StackPanel>
                         </Border>
                     </StackPanel>
@@ -343,3 +611,5 @@
         </TabControl>
     </Grid>
 </Window>
+
+
