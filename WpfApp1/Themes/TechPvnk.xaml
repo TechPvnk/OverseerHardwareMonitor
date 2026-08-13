@@ -18,6 +18,7 @@
     <SolidColorBrush x:Key="MutedTextBrush" Color="#A0A0A0"/>
     <SolidColorBrush x:Key="DisabledTextBrush" Color="#707070"/>
     <SolidColorBrush x:Key="TelemetryBrush" Color="#8FD3FF"/>
+    <SolidColorBrush x:Key="WarningBrush" Color="#FF9D00"/>
 
     <!-- Accent -->
     <SolidColorBrush x:Key="AccentBrush" Color="#BE2331"/>
@@ -34,8 +35,7 @@
 
     <Style x:Key="SectionLabelTextStyle" TargetType="TextBlock">
         <Setter Property="FontFamily" Value="{StaticResource DisplayFont}"/>
-        <Setter Property="FontSize" Value="15
-                "/>
+        <Setter Property="FontSize" Value="15"/>
         <Setter Property="FontWeight" Value="Bold"/>
         <Setter Property="Foreground" Value="{StaticResource AccentHoverBrush}"/>
     </Style>

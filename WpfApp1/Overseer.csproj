@@ -20,6 +20,7 @@
   <ItemGroup>
     <None Remove="Themes\favicon.ico" />
     <None Remove="Themes\oshmfavicon.png" />
+    <None Remove="Themes\overseerlogo.png" />
     <None Remove="Themes\Splash.png" />
     <None Remove="Themes\overseer-brand.png" />
     <None Remove="Fonts\Quantico-Regular.ttf" />
@@ -44,6 +45,7 @@
     <Resource Include="Themes\oshmfavicon.png">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </Resource>
+    <Resource Include="Themes\overseerlogo.png" />
     <Resource Include="Themes\Splash.png">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </Resource>

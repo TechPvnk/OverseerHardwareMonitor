@@ -20,6 +20,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
     private readonly SmartctlService _smartctlService = new();
     private readonly DispatcherTimer _timer;
     private bool _smartctlRefreshInProgress;
+    private bool _hasSuccessfulSnapshot;
     private DateTime _nextSmartctlRefreshUtc = DateTime.MinValue;
     private string _cpuTemperature = "Initializing...";
     private TemperatureStatus _cpuTemperatureStatus = TemperatureStatus.Unavailable(TemperatureThresholds.Cpu);
@@ -55,6 +56,10 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
     private string _diskHealth = "Unknown";
     private string _ramInfo = "Unknown";
     private string _ramTotal = "Unknown";
+    private string _ramUsed = "N/A";
+    private string _ramAvailable = "N/A";
+    private string _ramUsage = "N/A";
+    private string _ramTemperature = "—";
     private string _ramType = "Unknown";
     private string _ramClock = "Unknown";
     private string _motherboard = "Unknown";
@@ -82,6 +87,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
     public ObservableCollection<double> CpuUsageHistory { get; } = new();
     public ObservableCollection<double> GpuTemperatureHistory { get; } = new();
     public ObservableCollection<double> GpuUsageHistory { get; } = new();
+    public ObservableCollection<double> RamUsageHistory { get; } = new();
     public ObservableCollection<string> RamModulesList { get; } = new();
 
     public string CpuTemperature
@@ -244,6 +250,10 @@ public sealed class DriveTemperatureViewModel : INotifyPropertyChanged
     public string DiskHealth { get => _diskHealth; set => SetProperty(ref _diskHealth, value); }
     public string RamInfo { get => _ramInfo; set => SetProperty(ref _ramInfo, value); }
     public string RamTotal { get => _ramTotal; set => SetProperty(ref _ramTotal, value); }
+    public string RamUsed { get => _ramUsed; set => SetProperty(ref _ramUsed, value); }
+    public string RamAvailable { get => _ramAvailable; set => SetProperty(ref _ramAvailable, value); }
+    public string RamUsage { get => _ramUsage; set => SetProperty(ref _ramUsage, value); }
+    public string RamTemperature { get => _ramTemperature; set => SetProperty(ref _ramTemperature, value); }
     public string RamType { get => _ramType; set => SetProperty(ref _ramType, value); }
     public string RamClock { get => _ramClock; set => SetProperty(ref _ramClock, value); }
     public string Motherboard { get => _motherboard; set => SetProperty(ref _motherboard, value); }
@@ -322,6 +332,12 @@ public sealed class DriveTemperatureViewModel : INotifyPropertyChanged
             GpuMemoryFree = snapshot.GpuMemoryFree;
             RamInfo = snapshot.RamInfo;
             RamTotal = snapshot.RamTotal;
+            RamUsed = snapshot.RamUsed;
+            RamAvailable = snapshot.RamAvailable;
+            RamUsage = snapshot.RamUsage;
+            RamTemperature = TemperatureStatusService.IsAvailableTemperature(snapshot.RamTemperatureValue)
+                ? FormatTemperature(snapshot.RamTemperatureValue)
+                : "—";
             RamType = snapshot.RamType;
             RamClock = snapshot.RamClock;
             BatteryInfo = snapshot.BatteryInfo;
@@ -440,12 +456,19 @@ public sealed class DriveTemperatureViewModel : INotifyPropertyChanged
             AddHistoryPoint(CpuUsageHistory, snapshot.CpuUsageValue);
             AddHistoryPoint(GpuTemperatureHistory, snapshot.GpuTemperatureValue, requireAvailableTemperature: true);
             AddHistoryPoint(GpuUsageHistory, snapshot.GpuUsageValue);
+            AddHistoryPoint(RamUsageHistory, snapshot.RamUsageValue);
             _audioAlertService.ProcessSnapshot(snapshot, AudioAlertsEnabled);
+            _hasSuccessfulSnapshot = true;
         }
         catch (Exception ex)
         {
             Debug.WriteLine($"RefreshData failed: {ex}");
-            ApplyUnavailableHardwareState();
+            // A transient provider failure must not erase the last known-good display. During
+            // startup, retain the intentional initializing/unavailable state instead.
+            if (!_hasSuccessfulSnapshot)
+            {
+                ApplyUnavailableHardwareState();
+            }
         }
     }
 
@@ -531,6 +554,7 @@ public sealed class DriveTemperatureViewModel : INotifyPropertyChanged
         CpuUsageHistory.Clear();
         GpuTemperatureHistory.Clear();
         GpuUsageHistory.Clear();
+        RamUsageHistory.Clear();
 
         RefreshData();
     }
@@ -574,6 +598,10 @@ public sealed class DriveTemperatureViewModel : INotifyPropertyChanged
         GpuTemperatureStatus = TemperatureStatus.Unavailable(TemperatureThresholds.Gpu);
         GpuUsage = "N/A";
         GpuPower = "N/A";
+        RamUsed = "N/A";
+        RamAvailable = "N/A";
+        RamUsage = "N/A";
+        RamTemperature = "—";
         DiskTemperature = "N/A";
         DiskHealth = "Unknown";
 

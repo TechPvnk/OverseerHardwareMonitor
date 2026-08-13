@@ -75,6 +75,13 @@ public sealed class WindowsSystemInfo
         {
             if (GetSystemPowerStatus(out SYSTEM_POWER_STATUS status))
             {
+                // Desktop systems report BatteryFlag 128. That is a supported no-battery state,
+                // not an unknown or failed battery reading.
+                if (status.BatteryFlag == 128)
+                {
+                    return "Not present";
+                }
+
                 // BatteryLifePercent: 0-100, 255 = unknown
                 string percent = status.BatteryLifePercent != 255 ? status.BatteryLifePercent + "%" : "Unknown";
                 string ac = status.ACLineStatus switch
@@ -105,7 +112,7 @@ public sealed class WindowsSystemInfo
                 return "Not present";
             }
 
-            string percentWmi = bat.GetUInt32("EstimatedChargeRemaining") is uint p ? (p > 0 ? p.ToString(CultureInfo.InvariantCulture) + "%" : "Unknown") : "Unknown";
+            string percentWmi = bat.GetUInt32("EstimatedChargeRemaining") is uint p && p <= 100 ? p.ToString(CultureInfo.InvariantCulture) + "%" : "Unknown";
             string statusStr = bat.GetUInt32("BatteryStatus") is uint s ? s.ToString(CultureInfo.InvariantCulture) : "Unknown";
             string voltage = bat.GetUInt32("Voltage") is uint v ? (v > 0 ? (v / 1000.0).ToString("0.###", CultureInfo.InvariantCulture) + " V" : "Unknown") : "Unknown";
             string runtime = bat.GetUInt32("EstimatedRunTime") is uint r ? (r > 0 ? r + " min" : "Unknown") : "Unknown";
@@ -514,18 +521,9 @@ public sealed class WindowsSystemInfo
 
     private static string ReadCpuTdp()
     {
-        // TDP is often not exposed via WMI. Try common property names; otherwise unknown.
-        var procs = Query("root\\CIMV2", "SELECT ThermalDesignPower, PowerManagementCapabilities, Name FROM Win32_Processor");
-        foreach (var p in procs)
-        {
-            // some systems may expose a ThermalDesignPower property
-            uint? tdp = p.GetUInt32("ThermalDesignPower") ?? p.GetUInt32("TDP") ?? p.GetUInt32("MaxTDP");
-            if (tdp.HasValue && tdp.Value > 0)
-            {
-                return $"{tdp.Value} W";
-            }
-        }
-
+        // Win32_Processor does not define a standard TDP property. Querying vendor-only
+        // names makes the whole WMI query invalid; HardwareMonitorEngine supplies a live
+        // package-power approximation when an actual sensor is available.
         return "Unknown";
     }
 

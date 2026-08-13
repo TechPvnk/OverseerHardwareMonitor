@@ -17,6 +17,13 @@ public sealed class HardwareMonitorEngine : IDisposable
     private readonly UpdateVisitor _updateVisitor = new();
     private readonly WindowsSystemInfo _windowsSystemInfo = new();
     private SystemInfoSnapshot? _systemInfo;
+    private readonly Dictionary<string, string> _storageInterfaceCache = new(StringComparer.OrdinalIgnoreCase);
+    private string? _cachedGpuMetadataName;
+    private string _cachedGpuRam = "Unknown";
+    private string _cachedGpuBus = "Unknown";
+    private bool _hasCompletedSensorWarmup;
+    private DateTime _lastWmiCpuTemperatureAttemptUtc = DateTime.MinValue;
+    private float? _cachedWmiCpuTemperature;
     private bool _disposed;
     private bool _isOpen;
     private bool _isInstallingPawnIo; // Guard flag to prevent duplicate installer triggers
@@ -93,8 +100,10 @@ public sealed class HardwareMonitorEngine : IDisposable
             float? cpuPower = null;
             float? cpuClock = null;
 
-            // Warm-up loop: SMU and Super I/O sensors often return null on the first tick.
-            for (int i = 0; i < 3; i++)
+            // Warm-up is only useful while drivers first bind. Repeating it for unsupported CPU
+            // power sensors blocks the dispatcher by up to 100 ms on every later refresh.
+            int updateAttempts = _hasCompletedSensorWarmup ? 1 : 3;
+            for (int i = 0; i < updateAttempts; i++)
             {
                 UpdateHardware();
                 _systemInfo ??= _windowsSystemInfo.ReadSystemInfo();
@@ -116,18 +125,27 @@ public sealed class HardwareMonitorEngine : IDisposable
                 cpuClock = FindSensorValue(cpu, SensorType.Clock, "Core")
                     ?? FindFirstValue(cpu, SensorType.Clock);
 
-                if (cpuTemp.HasValue && cpuTemp.Value > 0 && cpuPower.HasValue)
+                if (cpuTemp.HasValue && cpuTemp.Value > 0)
                 {
                     break;
                 }
 
-                System.Threading.Thread.Sleep(50);
+                if (i < updateAttempts - 1)
+                {
+                    System.Threading.Thread.Sleep(50);
+                }
             }
+            _hasCompletedSensorWarmup = true;
 
             // Fallback to WMI if driver fails
             if (!cpuTemp.HasValue || cpuTemp.Value == 0)
             {
-                cpuTemp = GetWmiCpuTemperature();
+                if (DateTime.UtcNow - _lastWmiCpuTemperatureAttemptUtc >= TimeSpan.FromSeconds(30))
+                {
+                    _cachedWmiCpuTemperature = GetWmiCpuTemperature();
+                    _lastWmiCpuTemperatureAttemptUtc = DateTime.UtcNow;
+                }
+                cpuTemp = _cachedWmiCpuTemperature;
             }
 
             float? gpuTemp = FindSensorValue(gpu, SensorType.Temperature, "Core")
@@ -181,13 +199,13 @@ public sealed class HardwareMonitorEngine : IDisposable
                     gpuRamFromSensors = gpuMemoryTotalStr;
                 }
 
-                if (usedMb.HasValue && usedMb.Value > 0)
+                if (usedMb.HasValue && usedMb.Value >= 0)
                 {
                     double usedGb = Math.Round(usedMb.Value / 1024d, 2);
                     gpuMemoryUsedStr = $"{usedGb:0.##} GB";
                 }
 
-                if (freeMb.HasValue && freeMb.Value > 0)
+                if (freeMb.HasValue && freeMb.Value >= 0)
                 {
                     double freeGb = Math.Round(freeMb.Value / 1024d, 2);
                     gpuMemoryFreeStr = $"{freeGb:0.##} GB";
@@ -223,6 +241,29 @@ public sealed class HardwareMonitorEngine : IDisposable
                 .Select(CreateStorageSnapshot)
                 .ToArray();
 
+            IHardware[] lhmMemory = _computer.Hardware
+                .Where(h => h.HardwareType == HardwareType.Memory)
+                .ToArray();
+            float? ramUsed = FindMemorySensorValue(lhmMemory, SensorType.Data, "Memory Used", "Used Memory");
+            float? ramAvailable = FindMemorySensorValue(lhmMemory, SensorType.Data, "Memory Available", "Available Memory");
+            float? ramTotalFromSensors = FindMemorySensorValue(lhmMemory, SensorType.Data, "Memory Total", "Total Memory");
+            float? ramUsage = FindMemorySensorValue(lhmMemory, SensorType.Load, "Memory");
+            float? ramTemperature = FindMemoryTemperature(lhmMemory);
+
+            if (!ramUsage.HasValue
+                && ramUsed.HasValue
+                && ramAvailable.HasValue
+                && ramUsed.Value + ramAvailable.Value > 0)
+            {
+                ramUsage = ramUsed.Value / (ramUsed.Value + ramAvailable.Value) * 100f;
+            }
+
+            string ramTotal = _systemInfo?.RamTotal ?? "Unknown";
+            if (ramTotal == "Unknown" && ramTotalFromSensors is > 0)
+            {
+                ramTotal = FormatGigabytes(ramTotalFromSensors);
+            }
+
             // For GPU RAM/Bus prefer LibreHardwareMonitor sensors first, then per-GPU DXGI/WMI lookup
             string gpuRam = "Unknown";
             string gpuBus = "Unknown";
@@ -238,17 +279,23 @@ public sealed class HardwareMonitorEngine : IDisposable
             catch { }
 
             // If sensors didn't provide a value, try per-GPU DXGI/WMI lookup
-            if (gpuRam == "Unknown")
+            string gpuName = FormatName(gpu?.Name, string.Empty);
+            if (!string.Equals(_cachedGpuMetadataName, gpuName, StringComparison.Ordinal))
             {
-                try { gpuRam = _windowsSystemInfo.ReadGpuRamFor(FormatName(gpu?.Name, string.Empty)); } catch { }
+                _cachedGpuMetadataName = gpuName;
+                try { _cachedGpuRam = _windowsSystemInfo.ReadGpuRamFor(gpuName); } catch { _cachedGpuRam = "Unknown"; }
+                try { _cachedGpuBus = _windowsSystemInfo.ReadGpuBusFor(gpuName); } catch { _cachedGpuBus = "Unknown"; }
             }
 
-            try { gpuBus = _windowsSystemInfo.ReadGpuBusFor(FormatName(gpu?.Name, string.Empty)); } catch { }
+            if (gpuRam == "Unknown")
+            {
+                gpuRam = _cachedGpuRam;
+            }
+            gpuBus = _cachedGpuBus;
             // Prefer RAM module info from LibreHardwareMonitor if available (shows manufacturer + part)
             var ramModulesFinal = _systemInfo?.RamModules?.ToList() ?? new System.Collections.Generic.List<string>();
             try
             {
-                var lhmMemory = _computer.Hardware.Where(h => h.HardwareType == HardwareType.Memory).ToArray();
                 foreach (var mem in lhmMemory)
                 {
                     string name = FormatName(mem.Name, "Unknown Module");
@@ -398,7 +445,14 @@ public sealed class HardwareMonitorEngine : IDisposable
                         FormatName(cpu?.Name, "Unknown CPU"),
                         FormatName(gpu?.Name, "Unknown GPU"),
                         _systemInfo?.RamInfo ?? "Unknown",
-                        _systemInfo?.RamTotal ?? "Unknown",
+                        ramTotal,
+                        FormatGigabytes(ramUsed),
+                        ramUsed,
+                        FormatGigabytes(ramAvailable),
+                        ramAvailable,
+                        FormatPercent(ramUsage),
+                        ramUsage,
+                        ramTemperature,
                         _systemInfo?.RamType ?? "Unknown",
                         _systemInfo?.RamClock ?? "Unknown",
                         ramModulesFinal ?? (_systemInfo?.RamModules ?? Array.Empty<string>()),
@@ -695,6 +749,43 @@ public sealed class HardwareMonitorEngine : IDisposable
             .FirstOrDefault(value => value.HasValue && value.Value > 0);
     }
 
+    private static float? FindFirstPositiveValue(IEnumerable<IHardware> hardware, SensorType sensorType)
+    {
+        return hardware
+            .SelectMany(GetSensors)
+            .Where(sensor => sensor.SensorType == sensorType)
+            .Select(sensor => sensor.Value)
+            .FirstOrDefault(value => value.HasValue && value.Value > 0 && !float.IsNaN(value.Value) && !float.IsInfinity(value.Value));
+    }
+
+    private static float? FindMemorySensorValue(IEnumerable<IHardware> hardware, SensorType sensorType, params string[] names)
+    {
+        return hardware
+            .SelectMany(GetSensors)
+            .Where(sensor => sensor.SensorType == sensorType)
+            .Where(sensor => names.Any(name => sensor.Name.Contains(name, StringComparison.OrdinalIgnoreCase)))
+            .Select(sensor => sensor.Value)
+            .FirstOrDefault(value => IsValidSensorValue(sensorType, value));
+    }
+
+    private float? FindMemoryTemperature(IEnumerable<IHardware> memoryHardware)
+    {
+        float? directValue = FindFirstPositiveValue(memoryHardware, SensorType.Temperature);
+        if (directValue.HasValue)
+        {
+            return directValue;
+        }
+
+        return GetAllSensors()
+            .Where(sensor => sensor.SensorType == SensorType.Temperature)
+            .Where(sensor => sensor.Hardware.HardwareType == HardwareType.Motherboard)
+            .Where(sensor => sensor.Name.Contains("DIMM", StringComparison.OrdinalIgnoreCase)
+                || sensor.Name.Contains("DRAM", StringComparison.OrdinalIgnoreCase)
+                || sensor.Name.Contains("Memory", StringComparison.OrdinalIgnoreCase))
+            .Select(sensor => sensor.Value)
+            .FirstOrDefault(value => value.HasValue && value.Value > 0 && !float.IsNaN(value.Value) && !float.IsInfinity(value.Value));
+    }
+
     private static bool HasWarningSensors(IHardware storage)
     {
         return GetSensors(storage)
@@ -791,9 +882,15 @@ public sealed class HardwareMonitorEngine : IDisposable
 
     private string GetStorageInterfaceType(IHardware storage)
     {
+        if (_storageInterfaceCache.TryGetValue(storage.Name, out string? cachedInterface))
+        {
+            return cachedInterface;
+        }
+
         string windowsInterface = _windowsSystemInfo.ReadStorageInterface(storage.Name);
         if (windowsInterface != "Unknown")
         {
+            _storageInterfaceCache[storage.Name] = windowsInterface;
             return windowsInterface;
         }
 
@@ -801,20 +898,26 @@ public sealed class HardwareMonitorEngine : IDisposable
 
         if (name.Contains("NVMe", StringComparison.OrdinalIgnoreCase))
         {
-            return "NVMe";
+            return CacheStorageInterface(storage.Name, "NVMe");
         }
 
         if (name.Contains("USB", StringComparison.OrdinalIgnoreCase))
         {
-            return "USB";
+            return CacheStorageInterface(storage.Name, "USB");
         }
 
         if (name.Contains("SATA", StringComparison.OrdinalIgnoreCase) || name.Contains("SSD", StringComparison.OrdinalIgnoreCase))
         {
-            return "SATA";
+            return CacheStorageInterface(storage.Name, "SATA");
         }
 
-        return "Unknown";
+        return CacheStorageInterface(storage.Name, "Unknown");
+    }
+
+    private string CacheStorageInterface(string storageName, string value)
+    {
+        _storageInterfaceCache[storageName] = value;
+        return value;
     }
 
     private static string FormatTemperature(float? value)
@@ -828,6 +931,13 @@ public sealed class HardwareMonitorEngine : IDisposable
     {
         return value.HasValue && !float.IsNaN(value.Value) && !float.IsInfinity(value.Value)
             ? $"{value.Value.ToString("0.#", CultureInfo.InvariantCulture)}%"
+            : "N/A";
+    }
+
+    private static string FormatGigabytes(float? value)
+    {
+        return value.HasValue && value.Value >= 0 && !float.IsNaN(value.Value) && !float.IsInfinity(value.Value)
+            ? $"{value.Value.ToString("0.##", CultureInfo.InvariantCulture)} GB"
             : "N/A";
     }
 
@@ -907,6 +1017,13 @@ public sealed record HardwareSnapshot(
     string GpuName,
     string RamInfo,
     string RamTotal,
+    string RamUsed,
+    float? RamUsedValue,
+    string RamAvailable,
+    float? RamAvailableValue,
+    string RamUsage,
+    float? RamUsageValue,
+    float? RamTemperatureValue,
     string RamType,
     string RamClock,
     IReadOnlyList<string> RamModules,
@@ -944,6 +1061,13 @@ public sealed record HardwareSnapshot(
         "Unknown GPU",                       // GpuName
         "Unknown",                           // RamInfo
         "Unknown",                           // RamTotal
+        "N/A",                               // RamUsed
+        null,                                  // RamUsedValue
+        "N/A",                               // RamAvailable
+        null,                                  // RamAvailableValue
+        "N/A",                               // RamUsage
+        null,                                  // RamUsageValue
+        null,                                  // RamTemperatureValue
         "Unknown",                           // RamType
         "Unknown",                           // RamClock
         Array.Empty<string>(),                 // RamModules
