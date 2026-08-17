@@ -4,7 +4,8 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Overseer"
-        mc:Ignorable="d" Title="SplashScreen" Height="250" Width="450"
+        xmlns:services="clr-namespace:Overseer.Services"
+        mc:Ignorable="d" Title="{services:Loc AppTitle}" Height="250" Width="450"
         WindowStyle="None" 
         AllowsTransparency="True" 
         Background="Transparent"
@@ -21,7 +22,7 @@
             <StackPanel VerticalAlignment="Bottom">
                 <!-- Status Label -->
                 <TextBlock x:Name="StatusText" 
-                           Text="Initializing hardware engine..." 
+                           Text="{services:Loc SplashInitializing}" 
                            Foreground="#de0200" 
                            FontSize="11" 
                            FontFamily="Consolas"

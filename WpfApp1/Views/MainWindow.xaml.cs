@@ -8,6 +8,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Microsoft.Win32;
+using Overseer.Services;
 using Overseer.ViewModels;
 using Forms = System.Windows.Forms;
 
@@ -20,6 +21,8 @@ namespace Overseer
     {
         private readonly MainViewModel _viewModel;
         private Forms.NotifyIcon? _trayIcon;
+        private Forms.ToolStripMenuItem? _trayOpenMenuItem;
+        private Forms.ToolStripMenuItem? _trayExitMenuItem;
         private bool _exitRequested;
 
         public MainWindow()
@@ -30,6 +33,8 @@ namespace Overseer
             _viewModel = new MainViewModel();
             DataContext = _viewModel;
             InitializeTrayIcon();
+            LocalizationService.Instance.PropertyChanged += LocalizationChanged;
+            UpdateLocalizedChrome();
         }
 
         protected override void OnStateChanged(EventArgs e)
@@ -56,6 +61,7 @@ namespace Overseer
 
         protected override void OnClosed(EventArgs e)
         {
+            LocalizationService.Instance.PropertyChanged -= LocalizationChanged;
             _trayIcon?.Dispose();
             _viewModel.Dispose();
             base.OnClosed(e);
@@ -69,12 +75,16 @@ namespace Overseer
         private void InitializeTrayIcon()
         {
             Forms.ContextMenuStrip menu = new();
-            menu.Items.Add("Open Overseer", null, (_, _) => RestoreFromTray());
-            menu.Items.Add("Exit", null, (_, _) => ExitApplication());
+            _trayOpenMenuItem = new Forms.ToolStripMenuItem();
+            _trayOpenMenuItem.Click += (_, _) => RestoreFromTray();
+            _trayExitMenuItem = new Forms.ToolStripMenuItem();
+            _trayExitMenuItem.Click += (_, _) => ExitApplication();
+            menu.Items.Add(_trayOpenMenuItem);
+            menu.Items.Add(_trayExitMenuItem);
 
             _trayIcon = new Forms.NotifyIcon
             {
-                Text = "Overseer - Hardware Monitor",
+                Text = L("AppTitle"),
                 Icon = System.Drawing.SystemIcons.Application,
                 ContextMenuStrip = menu,
                 Visible = false
@@ -130,19 +140,8 @@ namespace Overseer
         private void AboutMenuItem_Click(object sender, RoutedEventArgs e)
         {
             MessageBox.Show(
-                "Version 1.0.0\n" +
-                "Built on\n" +
-                "LibreHardwareMonitor\n" +
-                "PawnIO\n" +
-                ".NET 8\n" +
-                "--------------\n" +
-                "Created by\n\n" +
-                "2026 Alfredo Capella (TechPvnk)\n" +
-                "techpvnk@proton.me\n\n" +
-                "Panama\n\n" +
-                "If you would like to support development:\n" +
-                "https://ko-fi.com/techpvnk",
-                "About Overseer",
+                L("AboutMessage"),
+                L("AboutTitle"),
                 MessageBoxButton.OK,
                 MessageBoxImage.Information);
         }
@@ -295,8 +294,8 @@ namespace Overseer
         {
             _viewModel.RefreshData();
 
-            string selectedHeader = (MainTabControl.SelectedItem as TabItem)?.Header?.ToString() ?? string.Empty;
-            return selectedHeader switch
+            string selectedTab = (MainTabControl.SelectedItem as TabItem)?.Tag?.ToString() ?? string.Empty;
+            return selectedTab switch
             {
                 "Temps" => BuildTempsText(),
                 "Disk Health" => BuildDiskHealthText(),
@@ -304,6 +303,47 @@ namespace Overseer
                 _ => BuildTextExport()
             };
         }
+
+        private void EnglishMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            LocalizationService.Instance.SetCulture("en");
+        }
+
+        private void SpanishMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            LocalizationService.Instance.SetCulture("es");
+        }
+
+        private void LocalizationChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == "Item[]" || e.PropertyName == nameof(LocalizationService.Culture))
+            {
+                Dispatcher.Invoke(UpdateLocalizedChrome);
+            }
+        }
+
+        private void UpdateLocalizedChrome()
+        {
+            EnglishMenuItem.IsChecked = LocalizationService.Instance.IsEnglish;
+            SpanishMenuItem.IsChecked = LocalizationService.Instance.IsSpanish;
+
+            if (_trayIcon is not null)
+            {
+                _trayIcon.Text = L("AppTitle");
+            }
+
+            if (_trayOpenMenuItem is not null)
+            {
+                _trayOpenMenuItem.Text = L("TrayOpen");
+            }
+
+            if (_trayExitMenuItem is not null)
+            {
+                _trayExitMenuItem.Text = L("CommandExit");
+            }
+        }
+
+        private static string L(string key) => LocalizationService.Instance[key];
 
         private string BuildTempsText()
         {
