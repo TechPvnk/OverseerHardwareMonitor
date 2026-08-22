@@ -228,51 +228,12 @@ namespace Overseer
         private string BuildTextExport()
         {
             StringBuilder builder = new();
-            builder.AppendLine("Overseer Hardware Monitor Export");
-            builder.AppendLine($"Exported: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+            AppendExportHeader(builder);
+            AppendTempsSection(builder);
             builder.AppendLine();
-            builder.AppendLine("[Temperatures]");
-            builder.AppendLine($"CPU: {_viewModel.CpuModel}");
-            builder.AppendLine($"CPU Temperature: {_viewModel.CpuTemperature}");
-            builder.AppendLine($"CPU Min Temperature: {_viewModel.CpuMinTemperature}");
-            builder.AppendLine($"CPU Max Temperature: {_viewModel.CpuMaxTemperature}");
-            builder.AppendLine($"CPU Usage: {_viewModel.CpuUsage}");
-            builder.AppendLine($"CPU Power: {_viewModel.CpuPower}");
-            builder.AppendLine($"CPU Min Power: {_viewModel.CpuMinPower}");
-            builder.AppendLine($"CPU Max Power: {_viewModel.CpuMaxPower}");
-            builder.AppendLine($"GPU: {_viewModel.GpuModel}");
-            builder.AppendLine($"GPU Temperature: {_viewModel.GpuTemperature}");
-            builder.AppendLine($"GPU Min Temperature: {_viewModel.GpuMinTemperature}");
-            builder.AppendLine($"GPU Max Temperature: {_viewModel.GpuMaxTemperature}");
-            builder.AppendLine($"GPU Usage: {_viewModel.GpuUsage}");
-            builder.AppendLine($"GPU Power: {_viewModel.GpuPower}");
-            builder.AppendLine($"GPU Min Power: {_viewModel.GpuMinPower}");
-            builder.AppendLine($"GPU Max Power: {_viewModel.GpuMaxPower}");
-            AppendDriveTemperatures(builder);
+            AppendDiskHealthSection(builder);
             builder.AppendLine();
-            builder.AppendLine("[Disk Health]");
-
-            foreach (var drive in _viewModel.StorageDrives)
-            {
-                builder.AppendLine($"Drive: {drive.Name}");
-                builder.AppendLine($"  Health: {drive.HealthStatus}");
-                builder.AppendLine($"  Temperature: {drive.Temperature}");
-                builder.AppendLine($"  Life Remaining: {drive.LifeRemaining}");
-                builder.AppendLine($"  Interface: {drive.InterfaceType}");
-                builder.AppendLine($"  Error Flag: {drive.ErrorFlag}");
-                builder.AppendLine($"  Reads: {drive.TotalReads}");
-                builder.AppendLine($"  Writes: {drive.TotalWrites}");
-                builder.AppendLine($"  Power On Count: {drive.PowerOnCount}");
-                builder.AppendLine($"  Power On Hours: {drive.PowerOnHours}");
-            }
-
-            builder.AppendLine();
-            builder.AppendLine("[System Info]");
-            builder.AppendLine($"CPU Clock: {_viewModel.CpuClock}");
-            builder.AppendLine($"RAM: {_viewModel.RamInfo}");
-            builder.AppendLine($"Motherboard: {_viewModel.Motherboard}");
-            builder.AppendLine($"BIOS: {_viewModel.Bios}");
-            builder.AppendLine($"OS Version: {_viewModel.OsVersion}");
+            AppendSystemInfoSection(builder);
             return builder.ToString();
         }
 
@@ -298,8 +259,8 @@ namespace Overseer
             return selectedTab switch
             {
                 "Temps" => BuildTempsText(),
-                "Disk Health" => BuildDiskHealthText(),
-                "System Info" => BuildSystemInfoText(),
+                "DiskHealth" => BuildDiskHealthText(),
+                "SystemInfo" => BuildSystemInfoText(),
                 _ => BuildTextExport()
             };
         }
@@ -319,6 +280,139 @@ namespace Overseer
             if (e.PropertyName == "Item[]" || e.PropertyName == nameof(LocalizationService.Culture))
             {
                 Dispatcher.Invoke(UpdateLocalizedChrome);
+            }
+        }
+
+        private void AppendExportHeader(StringBuilder builder)
+        {
+            builder.AppendLine("Overseer Hardware Monitor Export");
+            builder.AppendLine($"Exported: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+            builder.AppendLine();
+        }
+
+        private void AppendTempsSection(StringBuilder builder)
+        {
+            builder.AppendLine("[Temperatures]");
+            builder.AppendLine($"CPU: {_viewModel.CpuModel}");
+            builder.AppendLine($"CPU Temperature: {_viewModel.CpuTemperature}");
+            builder.AppendLine($"CPU Min Temperature: {_viewModel.CpuMinTemperature}");
+            builder.AppendLine($"CPU Max Temperature: {_viewModel.CpuMaxTemperature}");
+            builder.AppendLine($"CPU Usage: {_viewModel.CpuUsage}");
+            builder.AppendLine($"CPU Power: {_viewModel.CpuPower}");
+            builder.AppendLine($"CPU Min Power: {_viewModel.CpuMinPower}");
+            builder.AppendLine($"CPU Max Power: {_viewModel.CpuMaxPower}");
+            builder.AppendLine();
+            builder.AppendLine($"GPU: {_viewModel.GpuModel}");
+            builder.AppendLine($"GPU Temperature: {_viewModel.GpuTemperature}");
+            builder.AppendLine($"GPU Min Temperature: {_viewModel.GpuMinTemperature}");
+            builder.AppendLine($"GPU Max Temperature: {_viewModel.GpuMaxTemperature}");
+            builder.AppendLine($"GPU Usage: {_viewModel.GpuUsage}");
+            builder.AppendLine($"GPU Power: {_viewModel.GpuPower}");
+            builder.AppendLine($"GPU Min Power: {_viewModel.GpuMinPower}");
+            builder.AppendLine($"GPU Max Power: {_viewModel.GpuMaxPower}");
+            builder.AppendLine();
+            builder.AppendLine($"RAM Total: {_viewModel.RamTotal}");
+            builder.AppendLine($"RAM Used: {_viewModel.RamUsed}");
+            builder.AppendLine($"RAM Available: {_viewModel.RamAvailable}");
+            builder.AppendLine($"RAM Utilization: {_viewModel.RamUsage}");
+            builder.AppendLine($"RAM Temperature: {_viewModel.RamTemperature}");
+            AppendDriveTemperatures(builder);
+        }
+
+        private void AppendDiskHealthSection(StringBuilder builder)
+        {
+            builder.AppendLine("[Disk Health]");
+            foreach (MainViewModel.StorageDriveViewModel drive in _viewModel.StorageDrives)
+            {
+                builder.AppendLine($"Drive: {drive.Name}");
+                builder.AppendLine($"  Health: {drive.HealthStatus}");
+                builder.AppendLine($"  Temperature: {drive.Temperature}");
+                builder.AppendLine($"  Life Remaining: {drive.LifeRemaining}");
+                builder.AppendLine($"  Interface: {drive.InterfaceType}");
+                builder.AppendLine($"  Error Flag: {drive.ErrorFlag}");
+                builder.AppendLine($"  Total Host Reads: {drive.TotalReads}");
+                builder.AppendLine($"  Total Host Writes: {drive.TotalWrites}");
+                builder.AppendLine($"  Power On Count: {drive.PowerOnCount}");
+                builder.AppendLine($"  Power On Hours: {drive.PowerOnHours}");
+                AppendSmartctlDetails(builder, drive);
+                builder.AppendLine();
+            }
+        }
+
+        private static void AppendSmartctlDetails(StringBuilder builder, MainViewModel.StorageDriveViewModel drive)
+        {
+            SmartctlDriveReport? report = drive.SmartctlData;
+            if (report == null)
+            {
+                builder.AppendLine($"  SMARTCTL: {drive.SmartctlStatus}");
+                return;
+            }
+
+            builder.AppendLine($"  SMARTCTL: {report.StatusMessage ?? (report.IsAvailable ? "Available" : "Unavailable")}");
+            builder.AppendLine($"  Firmware: {report.FirmwareVersion ?? "N/A"}");
+            builder.AppendLine($"  Serial: {report.SerialNumber ?? "N/A"}");
+            builder.AppendLine($"  Capacity: {report.Capacity ?? "N/A"}");
+            builder.AppendLine($"  Protocol: {report.Protocol ?? "N/A"}");
+            builder.AppendLine($"  SMART Passed: {report.SmartPassed?.ToString() ?? "N/A"}");
+
+            if (report.NvmeHealth is not null)
+            {
+                builder.AppendLine("  [NVMe SMART / Health Attributes]");
+                foreach (SmartctlNvmeAttribute attribute in report.NvmeHealth.Attributes)
+                {
+                    builder.AppendLine($"    {attribute.Id} | {attribute.Name} | Current: {attribute.Current} | Threshold: {attribute.Threshold} | Raw: {attribute.RawValue}");
+                }
+            }
+            else if (report.AtaAttributes.Count > 0)
+            {
+                builder.AppendLine("  [SATA SMART Attributes]");
+                foreach (SmartctlAtaAttribute attribute in report.AtaAttributes)
+                {
+                    builder.AppendLine($"    {attribute.Id} | {attribute.Name} | Value: {attribute.Value} | Worst: {attribute.Worst} | Threshold: {attribute.Threshold} | Raw: {attribute.RawValue}");
+                }
+            }
+        }
+
+        private void AppendSystemInfoSection(StringBuilder builder)
+        {
+            builder.AppendLine("[System Info]");
+            builder.AppendLine($"CPU: {_viewModel.CpuModel}");
+            builder.AppendLine($"CPU Clock: {_viewModel.CpuClock}");
+            builder.AppendLine($"CPU Cores/Threads: {_viewModel.CpuCoresThreads}");
+            builder.AppendLine($"CPU Caches: {_viewModel.CpuCaches}");
+            builder.AppendLine($"CPU TDP: {_viewModel.CpuTdp}");
+            builder.AppendLine();
+            builder.AppendLine($"RAM: {_viewModel.RamInfo}");
+            builder.AppendLine($"RAM Type: {_viewModel.RamType}");
+            builder.AppendLine($"RAM Clock: {_viewModel.RamClock}");
+            foreach (string module in _viewModel.RamModulesList)
+            {
+                builder.AppendLine($"RAM Module: {module}");
+            }
+            builder.AppendLine();
+            builder.AppendLine($"GPU: {_viewModel.GpuModel}");
+            builder.AppendLine($"GPU Clock: {_viewModel.GpuClock}");
+            builder.AppendLine($"GPU RAM: {_viewModel.GpuRam}");
+            builder.AppendLine($"GPU Memory Total: {_viewModel.GpuMemoryTotal}");
+            builder.AppendLine($"GPU Memory Used: {_viewModel.GpuMemoryUsed}");
+            builder.AppendLine($"GPU Memory Free: {_viewModel.GpuMemoryFree}");
+            builder.AppendLine($"GPU Bus: {_viewModel.GpuBus}");
+            builder.AppendLine();
+            builder.AppendLine($"Motherboard: {_viewModel.Motherboard}");
+            foreach (string hardware in _viewModel.MotherboardSubHardware)
+            {
+                builder.AppendLine($"Motherboard Component: {hardware}");
+            }
+            builder.AppendLine($"BIOS: {_viewModel.Bios}");
+            builder.AppendLine($"Operating System: {_viewModel.OsVersion}");
+            builder.AppendLine($"Battery: {_viewModel.BatteryInfo}");
+            foreach (string graphics in _viewModel.GraphicsDevices)
+            {
+                builder.AppendLine($"Graphics: {graphics}");
+            }
+            foreach (string audio in _viewModel.AudioDevices)
+            {
+                builder.AppendLine($"Audio: {audio}");
             }
         }
 
@@ -348,67 +442,24 @@ namespace Overseer
         private string BuildTempsText()
         {
             StringBuilder builder = new();
-            builder.AppendLine("Overseer Hardware Monitor Export");
-            builder.AppendLine($"Exported: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
-            builder.AppendLine();
-            builder.AppendLine("[Temperatures]");
-            builder.AppendLine($"CPU: {_viewModel.CpuModel}");
-            builder.AppendLine($"CPU Temperature: {_viewModel.CpuTemperature}");
-            builder.AppendLine($"CPU Min Temperature: {_viewModel.CpuMinTemperature}");
-            builder.AppendLine($"CPU Max Temperature: {_viewModel.CpuMaxTemperature}");
-            builder.AppendLine($"CPU Usage: {_viewModel.CpuUsage}");
-            builder.AppendLine($"CPU Power: {_viewModel.CpuPower}");
-            builder.AppendLine($"CPU Min Power: {_viewModel.CpuMinPower}");
-            builder.AppendLine($"CPU Max Power: {_viewModel.CpuMaxPower}");
-            builder.AppendLine($"GPU: {_viewModel.GpuModel}");
-            builder.AppendLine($"GPU Temperature: {_viewModel.GpuTemperature}");
-            builder.AppendLine($"GPU Min Temperature: {_viewModel.GpuMinTemperature}");
-            builder.AppendLine($"GPU Max Temperature: {_viewModel.GpuMaxTemperature}");
-            builder.AppendLine($"GPU Usage: {_viewModel.GpuUsage}");
-            builder.AppendLine($"GPU Power: {_viewModel.GpuPower}");
-            builder.AppendLine($"GPU Min Power: {_viewModel.GpuMinPower}");
-            builder.AppendLine($"GPU Max Power: {_viewModel.GpuMaxPower}");
-            AppendDriveTemperatures(builder);
+            AppendExportHeader(builder);
+            AppendTempsSection(builder);
             return builder.ToString();
         }
 
         private string BuildDiskHealthText()
         {
             StringBuilder builder = new();
-            builder.AppendLine("Overseer Hardware Monitor Export");
-            builder.AppendLine($"Exported: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
-            builder.AppendLine();
-            builder.AppendLine("[Disk Health]");
-
-            foreach (var drive in _viewModel.StorageDrives)
-            {
-                builder.AppendLine($"Drive: {drive.Name}");
-                builder.AppendLine($"  Health: {drive.HealthStatus}");
-                builder.AppendLine($"  Temperature: {drive.Temperature}");
-                builder.AppendLine($"  Life Remaining: {drive.LifeRemaining}");
-                builder.AppendLine($"  Interface: {drive.InterfaceType}");
-                builder.AppendLine($"  Error Flag: {drive.ErrorFlag}");
-                builder.AppendLine($"  Reads: {drive.TotalReads}");
-                builder.AppendLine($"  Writes: {drive.TotalWrites}");
-                builder.AppendLine($"  Power On Count: {drive.PowerOnCount}");
-                builder.AppendLine($"  Power On Hours: {drive.PowerOnHours}");
-            }
-
+            AppendExportHeader(builder);
+            AppendDiskHealthSection(builder);
             return builder.ToString();
         }
 
         private string BuildSystemInfoText()
         {
             StringBuilder builder = new();
-            builder.AppendLine("Overseer Hardware Monitor Export");
-            builder.AppendLine($"Exported: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
-            builder.AppendLine();
-            builder.AppendLine("[System Info]");
-            builder.AppendLine($"CPU Clock: {_viewModel.CpuClock}");
-            builder.AppendLine($"RAM: {_viewModel.RamInfo}");
-            builder.AppendLine($"Motherboard: {_viewModel.Motherboard}");
-            builder.AppendLine($"BIOS: {_viewModel.Bios}");
-            builder.AppendLine($"OS Version: {_viewModel.OsVersion}");
+            AppendExportHeader(builder);
+            AppendSystemInfoSection(builder);
             return builder.ToString();
         }
         private string BuildCsvExport()
@@ -421,12 +472,21 @@ namespace Overseer
             AddCsvRow(builder, "Temps", "CPU Max Temperature", _viewModel.CpuMaxTemperature);
             AddCsvRow(builder, "Temps", "CPU Usage", _viewModel.CpuUsage);
             AddCsvRow(builder, "Temps", "CPU Power", _viewModel.CpuPower);
+            AddCsvRow(builder, "Temps", "CPU Min Power", _viewModel.CpuMinPower);
+            AddCsvRow(builder, "Temps", "CPU Max Power", _viewModel.CpuMaxPower);
             AddCsvRow(builder, "Temps", "GPU", _viewModel.GpuModel);
             AddCsvRow(builder, "Temps", "GPU Temperature", _viewModel.GpuTemperature);
             AddCsvRow(builder, "Temps", "GPU Min Temperature", _viewModel.GpuMinTemperature);
             AddCsvRow(builder, "Temps", "GPU Max Temperature", _viewModel.GpuMaxTemperature);
             AddCsvRow(builder, "Temps", "GPU Usage", _viewModel.GpuUsage);
             AddCsvRow(builder, "Temps", "GPU Power", _viewModel.GpuPower);
+            AddCsvRow(builder, "Temps", "GPU Min Power", _viewModel.GpuMinPower);
+            AddCsvRow(builder, "Temps", "GPU Max Power", _viewModel.GpuMaxPower);
+            AddCsvRow(builder, "Temps", "RAM Total", _viewModel.RamTotal);
+            AddCsvRow(builder, "Temps", "RAM Used", _viewModel.RamUsed);
+            AddCsvRow(builder, "Temps", "RAM Available", _viewModel.RamAvailable);
+            AddCsvRow(builder, "Temps", "RAM Utilization", _viewModel.RamUsage);
+            AddCsvRow(builder, "Temps", "RAM Temperature", _viewModel.RamTemperature);
             foreach (var drive in _viewModel.DriveTemperatures)
             {
                 string section = $"Temps - {drive.Name}";
@@ -447,14 +507,77 @@ namespace Overseer
                 AddCsvRow(builder, section, "Writes", drive.TotalWrites);
                 AddCsvRow(builder, section, "Power On Count", drive.PowerOnCount);
                 AddCsvRow(builder, section, "Power On Hours", drive.PowerOnHours);
+                AddSmartctlCsvRows(builder, section, drive);
             }
 
+            AddCsvRow(builder, "System Info", "CPU", _viewModel.CpuModel);
             AddCsvRow(builder, "System Info", "CPU Clock", _viewModel.CpuClock);
+            AddCsvRow(builder, "System Info", "CPU Cores/Threads", _viewModel.CpuCoresThreads);
+            AddCsvRow(builder, "System Info", "CPU Caches", _viewModel.CpuCaches);
+            AddCsvRow(builder, "System Info", "CPU TDP", _viewModel.CpuTdp);
             AddCsvRow(builder, "System Info", "RAM", _viewModel.RamInfo);
+            AddCsvRow(builder, "System Info", "RAM Type", _viewModel.RamType);
+            AddCsvRow(builder, "System Info", "RAM Clock", _viewModel.RamClock);
+            foreach (string module in _viewModel.RamModulesList)
+            {
+                AddCsvRow(builder, "System Info", "RAM Module", module);
+            }
+            AddCsvRow(builder, "System Info", "GPU", _viewModel.GpuModel);
+            AddCsvRow(builder, "System Info", "GPU Clock", _viewModel.GpuClock);
+            AddCsvRow(builder, "System Info", "GPU RAM", _viewModel.GpuRam);
+            AddCsvRow(builder, "System Info", "GPU Memory Total", _viewModel.GpuMemoryTotal);
+            AddCsvRow(builder, "System Info", "GPU Memory Used", _viewModel.GpuMemoryUsed);
+            AddCsvRow(builder, "System Info", "GPU Memory Free", _viewModel.GpuMemoryFree);
+            AddCsvRow(builder, "System Info", "GPU Bus", _viewModel.GpuBus);
             AddCsvRow(builder, "System Info", "Motherboard", _viewModel.Motherboard);
+            foreach (string hardware in _viewModel.MotherboardSubHardware)
+            {
+                AddCsvRow(builder, "System Info", "Motherboard Component", hardware);
+            }
             AddCsvRow(builder, "System Info", "BIOS", _viewModel.Bios);
             AddCsvRow(builder, "System Info", "OS Version", _viewModel.OsVersion);
+            AddCsvRow(builder, "System Info", "Battery", _viewModel.BatteryInfo);
+            foreach (string graphics in _viewModel.GraphicsDevices)
+            {
+                AddCsvRow(builder, "System Info", "Graphics", graphics);
+            }
+            foreach (string audio in _viewModel.AudioDevices)
+            {
+                AddCsvRow(builder, "System Info", "Audio", audio);
+            }
             return builder.ToString();
+        }
+
+        private static void AddSmartctlCsvRows(StringBuilder builder, string section, MainViewModel.StorageDriveViewModel drive)
+        {
+            SmartctlDriveReport? report = drive.SmartctlData;
+            if (report == null)
+            {
+                AddCsvRow(builder, section, "SMARTCTL Status", drive.SmartctlStatus);
+                return;
+            }
+
+            AddCsvRow(builder, section, "SMARTCTL Status", report.StatusMessage ?? (report.IsAvailable ? "Available" : "Unavailable"));
+            AddCsvRow(builder, section, "SMARTCTL Firmware", report.FirmwareVersion ?? "N/A");
+            AddCsvRow(builder, section, "SMARTCTL Serial", report.SerialNumber ?? "N/A");
+            AddCsvRow(builder, section, "SMARTCTL Capacity", report.Capacity ?? "N/A");
+            AddCsvRow(builder, section, "SMARTCTL Protocol", report.Protocol ?? "N/A");
+            AddCsvRow(builder, section, "SMARTCTL Passed", report.SmartPassed?.ToString() ?? "N/A");
+
+            if (report.NvmeHealth is not null)
+            {
+                foreach (SmartctlNvmeAttribute attribute in report.NvmeHealth.Attributes)
+                {
+                    AddCsvRow(builder, section, $"NVMe {attribute.Id} {attribute.Name}", $"Current={attribute.Current}; Threshold={attribute.Threshold}; Raw={attribute.RawValue}");
+                }
+            }
+            else
+            {
+                foreach (SmartctlAtaAttribute attribute in report.AtaAttributes)
+                {
+                    AddCsvRow(builder, section, $"SATA {attribute.Id} {attribute.Name}", $"Value={attribute.Value}; Worst={attribute.Worst}; Threshold={attribute.Threshold}; Raw={attribute.RawValue}");
+                }
+            }
         }
 
         private static void AddCsvRow(StringBuilder builder, string section, string name, string value)
@@ -469,6 +592,11 @@ namespace Overseer
         private void ResetStatisticsMenuItem_Click(object sender, RoutedEventArgs e)
         {
             _viewModel.ResetStatistics();
+        }
+
+        private void RefreshSystemInformationMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            _viewModel.RefreshSystemInformation();
         }
 
         private void AlertSoundMenuItem_Click(object sender, RoutedEventArgs e)

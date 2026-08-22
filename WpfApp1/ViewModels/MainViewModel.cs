@@ -89,6 +89,8 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
     public ObservableCollection<double> GpuUsageHistory { get; } = new();
     public ObservableCollection<double> RamUsageHistory { get; } = new();
     public ObservableCollection<string> RamModulesList { get; } = new();
+    public ObservableCollection<string> GraphicsDevices { get; } = new();
+    public ObservableCollection<string> AudioDevices { get; } = new();
 
     public string CpuTemperature
     {
@@ -345,6 +347,18 @@ public sealed class DriveTemperatureViewModel : INotifyPropertyChanged
             Bios = snapshot.Bios;
             OsVersion = snapshot.OsVersion;
 
+            GraphicsDevices.Clear();
+            foreach (string device in snapshot.GraphicsDevices)
+            {
+                GraphicsDevices.Add(device);
+            }
+
+            AudioDevices.Clear();
+            foreach (string device in snapshot.AudioDevices)
+            {
+                AudioDevices.Add(device);
+            }
+
             foreach (StorageHealthSnapshot drive in snapshot.StorageDrives)
             {
                 StorageHealthSnapshot formattedDrive = ConvertDriveTemperature(drive);
@@ -555,7 +569,21 @@ public sealed class DriveTemperatureViewModel : INotifyPropertyChanged
         GpuTemperatureHistory.Clear();
         GpuUsageHistory.Clear();
         RamUsageHistory.Clear();
+        foreach (DriveTemperatureViewModel drive in DriveTemperatures)
+        {
+            drive.MinValue = null;
+            drive.MaxValue = null;
+            drive.MinTemperature = "N/A";
+            drive.MaxTemperature = "N/A";
+            drive.History.Clear();
+        }
 
+        RefreshData();
+    }
+
+    public void RefreshSystemInformation()
+    {
+        _engine.RefreshSystemInformation();
         RefreshData();
     }
 

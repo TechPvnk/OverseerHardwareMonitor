@@ -249,6 +249,14 @@ public sealed class HardwareMonitorEngine : IDisposable
             float? ramTotalFromSensors = FindMemorySensorValue(lhmMemory, SensorType.Data, "Memory Total", "Total Memory");
             float? ramUsage = FindMemorySensorValue(lhmMemory, SensorType.Load, "Memory");
             float? ramTemperature = FindMemoryTemperature(lhmMemory);
+            PhysicalMemorySnapshot? physicalMemory = _windowsSystemInfo.ReadPhysicalMemory();
+
+            if (physicalMemory is not null)
+            {
+                ramUsed = physicalMemory.UsedGigabytes;
+                ramAvailable = physicalMemory.AvailableGigabytes;
+                ramUsage = physicalMemory.UsagePercent;
+            }
 
             if (!ramUsage.HasValue
                 && ramUsed.HasValue
@@ -262,6 +270,10 @@ public sealed class HardwareMonitorEngine : IDisposable
             if (ramTotal == "Unknown" && ramTotalFromSensors is > 0)
             {
                 ramTotal = FormatGigabytes(ramTotalFromSensors);
+            }
+            if (ramTotal == "Unknown" && physicalMemory is not null)
+            {
+                ramTotal = FormatGigabytes(physicalMemory.TotalGigabytes);
             }
 
             // For GPU RAM/Bus prefer LibreHardwareMonitor sensors first, then per-GPU DXGI/WMI lookup
@@ -461,6 +473,8 @@ public sealed class HardwareMonitorEngine : IDisposable
                         _systemInfo?.OsVersion ?? "Unknown",
                         motherboardSubs,
                         batteryInfo,
+                        _systemInfo?.GraphicsDevices ?? Array.Empty<string>(),
+                        _systemInfo?.AudioDevices ?? Array.Empty<string>(),
                         FormatTemperature(cpuTemp),
                         cpuTemp,
                         FormatPercent(cpuUsage),
@@ -485,6 +499,14 @@ public sealed class HardwareMonitorEngine : IDisposable
                         gpuPower,
                         storage);
         }, HardwareSnapshot.Empty);
+    }
+
+    public void RefreshSystemInformation()
+    {
+        _systemInfo = null;
+        _cachedGpuMetadataName = null;
+        _cachedGpuRam = "Unknown";
+        _cachedGpuBus = "Unknown";
     }
 
     public void WriteDebugSensorSnapshot()
@@ -1032,6 +1054,8 @@ public sealed record HardwareSnapshot(
     string OsVersion,
     IReadOnlyList<string> MotherboardSubHardware,
     string BatteryInfo,
+    IReadOnlyList<string> GraphicsDevices,
+    IReadOnlyList<string> AudioDevices,
     string CpuTemperature,
     float? CpuTemperatureValue,
     string CpuUsage,
@@ -1076,6 +1100,8 @@ public sealed record HardwareSnapshot(
         "Unknown",                           // OsVersion
         Array.Empty<string>(),                 // MotherboardSubHardware
         "Not present",                       // BatteryInfo
+        Array.Empty<string>(),                 // GraphicsDevices
+        Array.Empty<string>(),                 // AudioDevices
         "N/A",                               // CpuTemperature
         null,                                  // CpuTemperatureValue
         "N/A",                               // CpuUsage

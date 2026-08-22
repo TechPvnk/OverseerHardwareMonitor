@@ -20,6 +20,7 @@
   <ItemGroup>
     <None Remove="Themes\favicon.ico" />
     <None Remove="Themes\oshmfavicon.png" />
+    <None Remove="Themes\overseer-logo-mascot.PNG" />
     <None Remove="Themes\overseerlogo.png" />
     <None Remove="Themes\Splash.png" />
     <None Remove="Themes\overseer-brand.png" />
@@ -43,6 +44,9 @@
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </Resource>
     <Resource Include="Themes\oshmfavicon.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Themes\overseer-logo-mascot.PNG">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </Resource>
     <Resource Include="Themes\overseerlogo.png" />

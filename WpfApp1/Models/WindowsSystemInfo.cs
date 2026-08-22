@@ -23,7 +23,11 @@ public sealed record SystemInfoSnapshot(
     string Bios,
     string OsVersion,
     IReadOnlyList<string> MotherboardSubHardware,
-    string BatteryInfo);
+    string BatteryInfo,
+    IReadOnlyList<string> GraphicsDevices,
+    IReadOnlyList<string> AudioDevices);
+
+public sealed record PhysicalMemorySnapshot(float TotalGigabytes, float UsedGigabytes, float AvailableGigabytes, float UsagePercent);
 
 public sealed class WindowsSystemInfo
 {
@@ -47,6 +51,8 @@ public sealed class WindowsSystemInfo
         catch { }
 
         string battery = ReadBatteryInfo();
+        IReadOnlyList<string> graphics = ReadGraphicsDevices();
+        IReadOnlyList<string> audio = ReadAudioDevices();
 
         return new SystemInfoSnapshot(
             // RamInfo kept for backward compatibility (formatted)
@@ -65,7 +71,103 @@ public sealed class WindowsSystemInfo
             ReadBios(),
             ReadOsVersion(),
             mbSub,
-            battery);
+            battery,
+            graphics,
+            audio);
+    }
+
+    public PhysicalMemorySnapshot? ReadPhysicalMemory()
+    {
+        try
+        {
+            MEMORYSTATUSEX status = new()
+            {
+                DwLength = (uint)Marshal.SizeOf<MEMORYSTATUSEX>()
+            };
+
+            if (!GlobalMemoryStatusEx(ref status) || status.UllTotalPhys == 0)
+            {
+                return null;
+            }
+
+            ulong usedBytes = status.UllTotalPhys >= status.UllAvailPhys
+                ? status.UllTotalPhys - status.UllAvailPhys
+                : 0;
+            float totalGb = (float)(status.UllTotalPhys / 1024d / 1024d / 1024d);
+            float availableGb = (float)(status.UllAvailPhys / 1024d / 1024d / 1024d);
+            float usedGb = (float)(usedBytes / 1024d / 1024d / 1024d);
+            float usagePercent = totalGb > 0 ? usedGb / totalGb * 100f : 0;
+
+            return new PhysicalMemorySnapshot(totalGb, usedGb, availableGb, usagePercent);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static IReadOnlyList<string> ReadGraphicsDevices()
+    {
+        var controllers = Query("root\\CIMV2", "SELECT Name, AdapterCompatibility, CurrentHorizontalResolution, CurrentVerticalResolution, CurrentRefreshRate FROM Win32_VideoController");
+        var results = new List<string>(WindowsDisplayInfo.EnumerateActiveDisplays());
+
+        if (results.Count == 0)
+        {
+            var monitors = Query("root\\CIMV2", "SELECT Name, ScreenWidth, ScreenHeight FROM Win32_DesktopMonitor");
+            foreach (WmiObject monitor in monitors)
+            {
+                string? name = monitor.GetString("Name");
+                uint? width = monitor.GetUInt32("ScreenWidth");
+                uint? height = monitor.GetUInt32("ScreenHeight");
+                if (!string.IsNullOrWhiteSpace(name))
+                {
+                    results.Add(width > 0 && height > 0 ? $"{name} {width}x{height}" : name);
+                }
+            }
+        }
+
+        foreach (WmiObject controller in controllers)
+        {
+            string? name = controller.GetString("Name");
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                continue;
+            }
+
+            string? compatibility = controller.GetString("AdapterCompatibility");
+            uint? width = controller.GetUInt32("CurrentHorizontalResolution");
+            uint? height = controller.GetUInt32("CurrentVerticalResolution");
+            uint? refresh = controller.GetUInt32("CurrentRefreshRate");
+            string resolution = width > 0 && height > 0
+                ? $" ({width}x{height}@{(refresh > 0 ? refresh : 0)}Hz)"
+                : string.Empty;
+            string vendor = !string.IsNullOrWhiteSpace(compatibility) ? $" ({compatibility})" : string.Empty;
+            results.Add($"{name}{vendor}{resolution}");
+        }
+
+        return results.Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+    }
+
+    private static IReadOnlyList<string> ReadAudioDevices()
+    {
+        return Query("root\\CIMV2", "SELECT Name, Manufacturer, Status FROM Win32_SoundDevice")
+            .Select(device =>
+            {
+                string? name = device.GetString("Name");
+                string? manufacturer = device.GetString("Manufacturer");
+                if (string.IsNullOrWhiteSpace(name))
+                {
+                    return null;
+                }
+
+                return string.IsNullOrWhiteSpace(manufacturer) || name.Contains(manufacturer, StringComparison.OrdinalIgnoreCase)
+                    ? name
+                    : $"{name} ({manufacturer})";
+            })
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .Cast<string>()
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
     }
 
     private static string ReadBatteryInfo()
@@ -128,6 +230,9 @@ public sealed class WindowsSystemInfo
     [DllImport("kernel32.dll")]
     private static extern bool GetSystemPowerStatus(out SYSTEM_POWER_STATUS lpSystemPowerStatus);
 
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool GlobalMemoryStatusEx(ref MEMORYSTATUSEX lpBuffer);
+
     [StructLayout(LayoutKind.Sequential)]
     private struct SYSTEM_POWER_STATUS
     {
@@ -137,6 +242,20 @@ public sealed class WindowsSystemInfo
         public byte Reserved1;
         public uint BatteryLifeTime;
         public uint BatteryFullLifeTime;
+    }
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+    private struct MEMORYSTATUSEX
+    {
+        public uint DwLength;
+        public uint DwMemoryLoad;
+        public ulong UllTotalPhys;
+        public ulong UllAvailPhys;
+        public ulong UllTotalPageFile;
+        public ulong UllAvailPageFile;
+        public ulong UllTotalVirtual;
+        public ulong UllAvailVirtual;
+        public ulong UllAvailExtendedVirtual;
     }
 
     private static string ReadRamTotal()

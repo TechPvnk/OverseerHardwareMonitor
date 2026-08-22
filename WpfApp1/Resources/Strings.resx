@@ -41,4 +41,9 @@
   <data name="FormatMemoryUsed" xml:space="preserve"><value>Memory Used: {0}</value></data>
   <data name="FormatMemoryFree" xml:space="preserve"><value>Memory Free: {0}</value></data>
   <data name="FormatBus" xml:space="preserve"><value>Bus: {0}</value></data>
+  <data name="SectionGraphics" xml:space="preserve"><value>GRAPHICS</value></data>
+  <data name="SectionAudio" xml:space="preserve"><value>AUDIO</value></data>
+  <data name="NoGraphicsDevices" xml:space="preserve"><value>No graphics display details available</value></data>
+  <data name="NoAudioDevices" xml:space="preserve"><value>No audio devices available</value></data>
+  <data name="CommandRefreshSystemInformation" xml:space="preserve"><value>Refresh System Information</value></data>
 </root>
