@@ -199,13 +199,15 @@
                 <MenuItem Header="{services:Loc CommandResetStatistics}" InputGestureText="F5" Click="ResetStatisticsMenuItem_Click"/>
                 <MenuItem Header="{services:Loc CommandRefreshSystemInformation}" Click="RefreshSystemInformationMenuItem_Click"/>
                 <Separator/>
-                <MenuItem Header="{services:Loc CommandOpenLog}"/>
+                <MenuItem Header="{services:Loc CommandOpenLog}" Click="OpenLogMenuItem_Click"/>
                 <MenuItem x:Name="AlertSoundMenuItem" Header="{services:Loc CommandAlertSound}" IsCheckable="True" IsChecked="True" Click="AlertSoundMenuItem_Click"/>
             </MenuItem>
 
             <MenuItem Header="{services:Loc MenuView}">
                 <MenuItem Header="{services:Loc CommandAlwaysOnTop}" IsCheckable="True" Click="AlwaysOnTopMenuItem_Click"/>
                 <MenuItem x:Name="MinimizeToTrayMenuItem" Header="{services:Loc CommandMinimizeToTray}" IsCheckable="True" Click="MinimizeToTrayMenuItem_Click"/>
+                <MenuItem x:Name="SidebarModeMenuItem" Header="{services:Loc SidebarMode}" IsCheckable="True" Click="SidebarModeMenuItem_Click"/>
+                <MenuItem x:Name="SidebarClickThroughMenuItem" Header="{services:Loc SidebarClickThrough}" IsCheckable="True" Click="SidebarClickThroughMenuItem_Click"/>
                 <MenuItem Header="{services:Loc MenuTemperature}">
                     <MenuItem x:Name="CelsiusMenuItem" Header="{services:Loc TemperatureCelsius}" IsCheckable="True" IsChecked="True" Click="CelsiusMenuItem_Click"/>
                     <MenuItem x:Name="FahrenheitMenuItem" Header="{services:Loc TemperatureFahrenheit}" IsCheckable="True" Click="FahrenheitMenuItem_Click"/>
@@ -243,12 +245,32 @@
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <StackPanel VerticalAlignment="Center">
                     <TextBlock Text="{services:Loc BrandSubtitle}" FontFamily="{StaticResource DisplayFont}" FontSize="10" Foreground="{StaticResource MutedTextBrush}" Height="14" Margin="0,30,0,0"/>
                 </StackPanel>
                 <Image Source="/Themes/overseerlogo.png" Height="48" Width="217" Stretch="Uniform" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0,-9,0,0"/>
-                <Image Source="/Themes/overseer-logo-mascot.png" Height="52" Stretch="Uniform" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="720,0,0,0" Width="87"/>
+                <ToggleButton x:Name="SidebarModeHeaderButton" Grid.Column="1" Width="38" Height="38" Margin="0,0,16,0" Background="Transparent" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Cursor="Hand" ToolTip="{services:Loc SidebarMode}" Click="SidebarModeHeaderButton_Click">
+                    <ToggleButton.Template>
+                        <ControlTemplate TargetType="ToggleButton">
+                            <Border x:Name="Surface" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="2">
+                                <Image Source="/Themes/overseer-sidebar-icon.png" Width="27" Height="27" Stretch="Uniform"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Surface" Property="Background" Value="#202123"/>
+                                    <Setter TargetName="Surface" Property="BorderBrush" Value="{StaticResource AccentHoverBrush}"/>
+                                </Trigger>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter TargetName="Surface" Property="Background" Value="#2A1518"/>
+                                    <Setter TargetName="Surface" Property="BorderBrush" Value="{StaticResource AccentHoverBrush}"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </ToggleButton.Template>
+                </ToggleButton>
+                <Image Grid.Column="2" Source="/Themes/overseer-logo-mascot.png" Height="52" Stretch="Uniform" HorizontalAlignment="Right" VerticalAlignment="Center" Width="87"/>
             </Grid>
         </Border>
 
@@ -632,6 +654,7 @@
                                 <StackPanel>
                                     <TextBlock Text="{services:Loc SectionGpu}" Style="{StaticResource SectionLabelTextStyle}"/>
                                     <TextBlock Text="{Binding GpuModel}" Style="{StaticResource CardTitleTextStyle}" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                                    <TextBlock Text="{services:LocFormat FormatDriverVersion, Path=GpuDriverVersion}" Style="{StaticResource MetricTextStyle}" Margin="0,6,0,0"/>
                                     <TextBlock Text="{services:LocFormat FormatClock, Path=GpuClock}" Style="{StaticResource MetricTextStyle}" Margin="0,6,0,0"/>
                                     <TextBlock Text="{services:LocFormat FormatRam, Path=GpuRam}" Style="{StaticResource MetricTextStyle}" Margin="0,2,0,0"/>
                                     <TextBlock Text="{services:LocFormat FormatMemoryTotal, Path=GpuMemoryTotal}" Style="{StaticResource MetricTextStyle}" Margin="0,2,0,0"/>
@@ -719,6 +742,138 @@
                                                 <Setter Property="Visibility" Value="Collapsed"/>
                                                 <Style.Triggers>
                                                     <DataTrigger Binding="{Binding GraphicsDevices.Count}" Value="0">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Style="{StaticResource ContentCardStyle}" Margin="0,10,0,0">
+                                <StackPanel>
+                                    <Grid>
+                                        <TextBlock Text="{services:Loc SectionNetwork}" Style="{StaticResource SectionLabelTextStyle}"/>
+                                        <TextBlock Text="{Binding PrimaryNetworkAdapter.InterfaceType}" Style="{StaticResource MetricTextStyle}" Foreground="{StaticResource TelemetryBrush}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                    </Grid>
+                                    <ContentControl Content="{Binding PrimaryNetworkAdapter}" Margin="0,6,0,0">
+                                        <ContentControl.Style>
+                                            <Style TargetType="ContentControl">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding HasActiveNetworkAdapter}" Value="False">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </ContentControl.Style>
+                                        <ContentControl.ContentTemplate>
+                                            <DataTemplate>
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding Name}" TextWrapping="Wrap">
+                                                        <TextBlock.Style>
+                                                            <Style TargetType="TextBlock" BasedOn="{StaticResource CardTitleTextStyle}">
+                                                                <Setter Property="FontSize" Value="15"/>
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding HasDistinctName}" Value="False">
+                                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </TextBlock.Style>
+                                                    </TextBlock>
+                                                    <TextBlock Text="{services:LocFormat FormatNetworkDescription, Path=Description}" Style="{StaticResource MetricTextStyle}" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                                    <TextBlock Text="{services:Loc NetworkConnected}" Style="{StaticResource MetricTextStyle}" Foreground="{StaticResource TelemetryBrush}" Margin="0,4,0,0"/>
+                                                    <TextBlock Text="{services:LocFormat FormatNetworkMaximumLinkSpeed, Path=MaximumLinkSpeed}" Style="{StaticResource MetricTextStyle}"/>
+                                                    <TextBlock Text="{services:LocFormat FormatNetworkCurrentLinkSpeed, Path=LinkSpeed}" Style="{StaticResource MetricTextStyle}"/>
+                                                    <TextBlock Text="{services:LocFormat FormatNetworkHardwareId, Path=HardwareId}" Style="{StaticResource MetricTextStyle}" TextWrapping="Wrap"/>
+                                                    <Grid Margin="0,1,0,0">
+                                                        <TextBlock Text="{services:LocFormat FormatNetworkIpv4, Path=MaskedIpv4Address}">
+                                                            <TextBlock.Style>
+                                                                <Style TargetType="TextBlock" BasedOn="{StaticResource MetricTextStyle}">
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Grid}}" Value="True">
+                                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </TextBlock.Style>
+                                                        </TextBlock>
+                                                        <TextBox Text="{services:LocFormat FormatNetworkIpv4, Path=Ipv4Address}" Foreground="{StaticResource MutedTextBrush}" Background="Transparent" BorderThickness="0" Padding="0" FontFamily="Segoe UI" FontSize="12" IsReadOnly="True" Cursor="IBeam">
+                                                            <TextBox.Style>
+                                                                <Style TargetType="TextBox">
+                                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Grid}}" Value="True">
+                                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </TextBox.Style>
+                                                        </TextBox>
+                                                    </Grid>
+                                                    <Grid Margin="0,1,0,0">
+                                                        <TextBlock Text="{services:LocFormat FormatNetworkIpv6, Path=MaskedIpv6Address}">
+                                                            <TextBlock.Style>
+                                                                <Style TargetType="TextBlock" BasedOn="{StaticResource MetricTextStyle}">
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Grid}}" Value="True">
+                                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </TextBlock.Style>
+                                                        </TextBlock>
+                                                        <TextBox Text="{services:LocFormat FormatNetworkIpv6, Path=Ipv6Address}" Foreground="{StaticResource MutedTextBrush}" Background="Transparent" BorderThickness="0" Padding="0" FontFamily="Segoe UI" FontSize="12" IsReadOnly="True" Cursor="IBeam">
+                                                            <TextBox.Style>
+                                                                <Style TargetType="TextBox">
+                                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Grid}}" Value="True">
+                                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </TextBox.Style>
+                                                        </TextBox>
+                                                    </Grid>
+                                                    <Grid Margin="0,1,0,0">
+                                                        <TextBlock Text="{services:LocFormat FormatNetworkMac, Path=MaskedMacAddress}">
+                                                            <TextBlock.Style>
+                                                                <Style TargetType="TextBlock" BasedOn="{StaticResource MetricTextStyle}">
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Grid}}" Value="True">
+                                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </TextBlock.Style>
+                                                        </TextBlock>
+                                                        <TextBox Text="{services:LocFormat FormatNetworkMac, Path=MacAddress}" Foreground="{StaticResource MutedTextBrush}" Background="Transparent" BorderThickness="0" Padding="0" FontFamily="Segoe UI" FontSize="12" IsReadOnly="True" Cursor="IBeam">
+                                                            <TextBox.Style>
+                                                                <Style TargetType="TextBox">
+                                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Grid}}" Value="True">
+                                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </TextBox.Style>
+                                                        </TextBox>
+                                                    </Grid>
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </ContentControl.ContentTemplate>
+                                    </ContentControl>
+                                    <TextBlock Text="{services:Loc NetworkNoActiveAdapter}" Margin="0,6,0,0">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock" BasedOn="{StaticResource MetricTextStyle}">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding HasActiveNetworkAdapter}" Value="False">
                                                         <Setter Property="Visibility" Value="Visible"/>
                                                     </DataTrigger>
                                                 </Style.Triggers>

@@ -485,6 +485,7 @@ public sealed class HardwareMonitorEngine : IDisposable
                         _systemInfo?.CpuCoresThreads ?? "Unknown",
                         _systemInfo?.CpuCaches ?? "Unknown",
                         cpuTdpDisplay,
+                        _systemInfo?.GpuDriverVersion ?? "—",
                         FormatClock(gpuClock, "Unknown"),
                         gpuRam,
                         gpuBus,
@@ -1066,6 +1067,7 @@ public sealed record HardwareSnapshot(
     string CpuCoresThreads,
     string CpuCaches,
     string CpuTdp,
+    string GpuDriverVersion,
     string GpuClock,
     string GpuRam,
     string GpuBus,
@@ -1112,6 +1114,7 @@ public sealed record HardwareSnapshot(
         "Unknown",                            // CpuCoresThreads
         "Unknown",                            // CpuCaches
         "Unknown",                            // CpuTdp
+        "—",                                  // GpuDriverVersion
         "Unknown",                            // GpuClock
         "Unknown",                            // GpuRam
         "Unknown",                            // GpuBus

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Management;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using Overseer.Services;
 
 namespace Overseer.Models;
 
@@ -17,6 +18,7 @@ public sealed record SystemInfoSnapshot(
     string CpuCoresThreads,
     string CpuCaches,
     string CpuTdp,
+    string GpuDriverVersion,
     string GpuRam,
     string GpuBus,
     string Motherboard,
@@ -31,7 +33,7 @@ public sealed record PhysicalMemorySnapshot(float TotalGigabytes, float UsedGiga
 
 public sealed class WindowsSystemInfo
 {
-    // Toggle to emit WMI queries to Debug output for troubleshooting
+    // Toggle to emit WMI diagnostics to the application log for troubleshooting.
     public static bool LogWmiQueries { get; set; } = false;
     // cache scopes that previously failed to avoid repeated WMI exceptions (reduces noisy first-chance exceptions)
     private static readonly System.Collections.Generic.HashSet<string> _failedWmiScopes = new(System.StringComparer.OrdinalIgnoreCase);
@@ -65,6 +67,7 @@ public sealed class WindowsSystemInfo
             ReadCpuCoresThreads(),
             ReadCpuCaches(),
             ReadCpuTdp(),
+            ReadGpuDriverVersion(),
             ReadGpuRam(),
             ReadGpuBus(),
             ReadMotherboard(),
@@ -146,6 +149,21 @@ public sealed class WindowsSystemInfo
         }
 
         return results.Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+    }
+
+    private static string ReadGpuDriverVersion()
+    {
+        try
+        {
+            WmiObject? controller = Query("root\\CIMV2", "SELECT DriverVersion FROM Win32_VideoController")
+                .FirstOrDefault(item => !string.IsNullOrWhiteSpace(item.GetString("DriverVersion")));
+
+            return controller?.GetString("DriverVersion") ?? "—";
+        }
+        catch
+        {
+            return "—";
+        }
     }
 
     private static IReadOnlyList<string> ReadAudioDevices()
@@ -728,12 +746,17 @@ public sealed class WindowsSystemInfo
     {
         if (_failedWmiScopes.Contains(scope))
         {
+            if (LogWmiQueries)
+            {
+                AppLog.Write($"WMI query skipped; scope '{scope}' is unavailable: {query}");
+            }
+
             return Array.Empty<WmiObject>();
         }
 
         if (LogWmiQueries)
         {
-            try { System.Diagnostics.Debug.WriteLine($"WMI Query (scope={scope}): {query}"); } catch { }
+            AppLog.Write($"WMI query [{scope}]: {query}");
         }
 
         try
@@ -744,6 +767,12 @@ public sealed class WindowsSystemInfo
                 .Cast<ManagementObject>()
                 .Select(item => new WmiObject(item))
                 .ToArray();
+
+            if (LogWmiQueries)
+            {
+                AppLog.Write($"WMI result [{scope}]: {results.Length} row(s).");
+            }
+
             return results;
         }
         catch (ManagementException mex)
@@ -760,20 +789,20 @@ public sealed class WindowsSystemInfo
             }
             catch { }
 
-            // Log full query for debugging
-            try
+            if (LogWmiQueries)
             {
-                System.Diagnostics.Debug.WriteLine($"WMI query failed for scope '{scope}' query: {query} -> {mex.Message}");
-            }
-            catch
-            {
-                System.Diagnostics.Debug.WriteLine($"WMI query failed for scope '{scope}': {mex.Message}");
+                AppLog.Write($"WMI query failed [{scope}]: {query}", mex);
             }
 
             return Array.Empty<WmiObject>();
         }
-        catch
+        catch (Exception ex)
         {
+            if (LogWmiQueries)
+            {
+                AppLog.Write($"WMI query failed [{scope}]: {query}", ex);
+            }
+
             return Array.Empty<WmiObject>();
         }
     }

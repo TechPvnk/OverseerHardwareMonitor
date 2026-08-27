@@ -59,6 +59,13 @@ public sealed class Sparkline : FrameworkElement
             typeof(Sparkline),
             new FrameworkPropertyMetadata(false, FrameworkPropertyMetadataOptions.AffectsRender));
 
+    public static readonly DependencyProperty TransparentBackgroundProperty =
+        DependencyProperty.Register(
+            nameof(TransparentBackground),
+            typeof(bool),
+            typeof(Sparkline),
+            new FrameworkPropertyMetadata(false, FrameworkPropertyMetadataOptions.AffectsRender));
+
     private static readonly Brush ChartBackground = CreateBrush(Color.FromRgb(18, 18, 18), 1d);
     private static readonly Pen GridPen = CreateFrozenPen(Color.FromRgb(46, 46, 46), 0.45d, 0.72d);
     private static readonly Brush AxisTextBrush = CreateBrush(Color.FromRgb(130, 130, 130), 0.82d);
@@ -107,12 +114,21 @@ public sealed class Sparkline : FrameworkElement
         set => SetValue(ShowAxisLabelsProperty, value);
     }
 
+    public bool TransparentBackground
+    {
+        get => (bool)GetValue(TransparentBackgroundProperty);
+        set => SetValue(TransparentBackgroundProperty, value);
+    }
+
     protected override void OnRender(DrawingContext drawingContext)
     {
         base.OnRender(drawingContext);
 
         Rect bounds = new(0, 0, RenderSize.Width, RenderSize.Height);
-        drawingContext.DrawRectangle(ChartBackground, null, bounds);
+        if (!TransparentBackground)
+        {
+            drawingContext.DrawRectangle(ChartBackground, null, bounds);
+        }
 
         if (ShowGrid)
         {

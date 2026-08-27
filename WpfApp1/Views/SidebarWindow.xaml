@@ -1,0 +1,593 @@
+<Window x:Class="Overseer.Views.SidebarWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:views="clr-namespace:Overseer.Views"
+        xmlns:services="clr-namespace:Overseer.Services"
+        Title="{services:Loc SidebarMode}"
+        Icon="/Themes/favicon.ico"
+        Width="320"
+        Height="840"
+        MinWidth="300"
+        MinHeight="220"
+        WindowStyle="None"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Foreground="{StaticResource TextBrush}"
+        FontFamily="Segoe UI"
+        Topmost="{Binding IsAlwaysOnTop}">
+    <Window.Resources>
+        <views:TemperatureStatusBrushConverter x:Key="TemperatureStatusBrushConverter"/>
+        <views:UnavailableValueConverter x:Key="UnavailableValueConverter"/>
+        <views:SidebarBackgroundBrushConverter x:Key="SidebarBackgroundBrushConverter"/>
+        <views:SidebarDockEdgeMatchConverter x:Key="SidebarDockEdgeMatchConverter"/>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+
+        <Style x:Key="SidebarCardStyle" TargetType="Border">
+            <Setter Property="Background" Value="{Binding BackgroundOpacity, Converter={StaticResource SidebarBackgroundBrushConverter}, ConverterParameter=#151617}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="3"/>
+            <Setter Property="Padding" Value="9,5"/>
+            <Setter Property="Margin" Value="0,0,0,5"/>
+        </Style>
+
+        <Style x:Key="SidebarHeadingStyle" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="{StaticResource DisplayFont}"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="{StaticResource AccentHoverBrush}"/>
+        </Style>
+
+        <Style x:Key="SidebarPrimaryValueStyle" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="{StaticResource DisplayFont}"/>
+            <Setter Property="FontSize" Value="24"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
+        <Style x:Key="SidebarMetricStyle" TargetType="TextBlock" BasedOn="{StaticResource MetricTextStyle}">
+            <Setter Property="FontSize" Value="10.5"/>
+        </Style>
+
+        <Style x:Key="SidebarIconButtonStyle" TargetType="Button">
+            <Setter Property="Width" Value="34"/>
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="Foreground" Value="{StaticResource MutedTextBrush}"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Surface" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Surface" Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+                                <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Surface" Property="Background" Value="{StaticResource AccentPressedBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SidebarDockButtonStyle" TargetType="ToggleButton">
+            <Setter Property="Width" Value="30"/>
+            <Setter Property="Height" Value="26"/>
+            <Setter Property="Margin" Value="2,0,0,0"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+            <Setter Property="Foreground" Value="{StaticResource MutedTextBrush}"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="Surface" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Surface" Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Surface" Property="Background" Value="#2A1518"/>
+                                <Setter TargetName="Surface" Property="BorderBrush" Value="{StaticResource AccentHoverBrush}"/>
+                                <Setter Property="Foreground" Value="{StaticResource AccentHoverBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SidebarFooterToggleStyle" TargetType="ToggleButton">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="Surface" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Surface" Property="Background" Value="#1C1E20"/>
+                                <Setter TargetName="Surface" Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Surface" Property="Background" Value="#2A1518"/>
+                                <Setter TargetName="Surface" Property="BorderBrush" Value="{StaticResource AccentHoverBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SidebarContextMenuStyle" TargetType="ContextMenu">
+            <Setter Property="Background" Value="{StaticResource PopupBrush}"/>
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="3"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ContextMenu">
+                        <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Padding="{TemplateBinding Padding}" SnapsToDevicePixels="True">
+                            <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Cycle"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SidebarContextMenuItemStyle" TargetType="MenuItem">
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="MenuItem">
+                        <Border x:Name="Surface" Background="{TemplateBinding Background}" MinWidth="185" Padding="7,6" SnapsToDevicePixels="True">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="18"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Path x:Name="CheckMark" Data="M 1 5 L 4 8 L 10 1" Stroke="{StaticResource TextBrush}" StrokeThickness="1.6" Visibility="Collapsed" VerticalAlignment="Center"/>
+                                <ContentPresenter Grid.Column="1" Margin="5,0,8,0" ContentSource="Header" RecognizesAccessKey="True" VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter TargetName="Surface" Property="Background" Value="{StaticResource MenuHoverBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="CheckMark" Property="Visibility" Value="Visible"/>
+                                <Setter TargetName="CheckMark" Property="Stroke" Value="{StaticResource AccentHoverBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SidebarSliderStyle" TargetType="Slider">
+            <Setter Property="Height" Value="24"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Slider">
+                        <Grid>
+                            <Border Height="4" Background="#303235" VerticalAlignment="Center"/>
+                            <Track x:Name="PART_Track" VerticalAlignment="Center">
+                                <Track.DecreaseRepeatButton>
+                                    <RepeatButton Command="Slider.DecreaseLarge" Focusable="False">
+                                        <RepeatButton.Template>
+                                            <ControlTemplate TargetType="RepeatButton">
+                                                <Border Height="4" Background="{StaticResource AccentBrush}"/>
+                                            </ControlTemplate>
+                                        </RepeatButton.Template>
+                                    </RepeatButton>
+                                </Track.DecreaseRepeatButton>
+                                <Track.Thumb>
+                                    <Thumb Width="10" Height="18" Background="#171819" BorderBrush="{StaticResource AccentHoverBrush}" BorderThickness="1" Focusable="False">
+                                        <Thumb.Template>
+                                            <ControlTemplate TargetType="Thumb">
+                                                <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="1"/>
+                                            </ControlTemplate>
+                                        </Thumb.Template>
+                                    </Thumb>
+                                </Track.Thumb>
+                                <Track.IncreaseRepeatButton>
+                                    <RepeatButton Command="Slider.IncreaseLarge" Focusable="False">
+                                        <RepeatButton.Template>
+                                            <ControlTemplate TargetType="RepeatButton">
+                                                <Border Height="4" Background="Transparent"/>
+                                            </ControlTemplate>
+                                        </RepeatButton.Template>
+                                    </RepeatButton>
+                                </Track.IncreaseRepeatButton>
+                            </Track>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Border BorderThickness="1" Background="{Binding BackgroundOpacity, Converter={StaticResource SidebarBackgroundBrushConverter}, ConverterParameter=#0D0E0F}">
+        <Border.Style>
+            <Style TargetType="Border">
+                <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding IsClickThrough}" Value="True">
+                        <Setter Property="BorderBrush" Value="{StaticResource AccentHoverBrush}"/>
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+        </Border.Style>
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="42"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="34"/>
+            </Grid.RowDefinitions>
+
+            <Border Grid.Row="0" Background="{Binding BackgroundOpacity, Converter={StaticResource SidebarBackgroundBrushConverter}, ConverterParameter=#101112}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" MouseLeftButtonDown="Header_MouseLeftButtonDown">
+                <Grid Margin="10,0,6,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <Image Source="/Themes/overseerlogo.png" Width="145" Height="30" Stretch="Uniform" HorizontalAlignment="Left"/>
+                    <ToggleButton x:Name="AlwaysOnTopButton" Grid.Column="1" IsChecked="{Binding IsAlwaysOnTop, Mode=TwoWay}" Width="50" Height="30" Margin="0,0,3,0" Background="Transparent" BorderBrush="Transparent" Foreground="{StaticResource MutedTextBrush}" ToolTip="{services:Loc SidebarAlwaysOnTop}">
+                        <ToggleButton.Template>
+                            <ControlTemplate TargetType="ToggleButton">
+                                <Border x:Name="Surface" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1">
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <Image Source="/Themes/AOT-Overseer-icon.png" Width="16" Height="16" Stretch="Uniform" Margin="0,0,5,0"/>
+                                        <TextBlock x:Name="AotLabel" Text="AOT" FontFamily="{StaticResource DisplayFont}" FontSize="12" Foreground="{StaticResource MutedTextBrush}"/>
+                                    </StackPanel>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Surface" Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+                                    </Trigger>
+                                    <Trigger Property="IsChecked" Value="True">
+                                        <Setter Property="Foreground" Value="{StaticResource AccentHoverBrush}"/>
+                                        <Setter TargetName="Surface" Property="Background" Value="#2A1518"/>
+                                        <Setter TargetName="Surface" Property="BorderBrush" Value="{StaticResource AccentHoverBrush}"/>
+                                        <Setter TargetName="AotLabel" Property="Foreground" Value="{StaticResource AccentHoverBrush}"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </ToggleButton.Template>
+                    </ToggleButton>
+                    <Button x:Name="SidebarSettingsButton" Grid.Column="2" Style="{StaticResource SidebarIconButtonStyle}" Content="..." FontFamily="{StaticResource DisplayFont}" FontSize="17" ToolTip="{services:Loc SidebarSettings}" Click="SidebarSettingsButton_Click">
+                        <Button.ContextMenu>
+                            <ContextMenu Style="{StaticResource SidebarContextMenuStyle}" ItemContainerStyle="{StaticResource SidebarContextMenuItemStyle}" DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
+                                <MenuItem Header="{services:Loc SidebarShowMinMax}" IsCheckable="True" IsChecked="{Binding ShowMinMax, Mode=TwoWay}"/>
+                                <MenuItem Header="{services:Loc SidebarClickThrough}" IsCheckable="True" IsChecked="{Binding IsClickThrough, Mode=TwoWay}"/>
+                                <MenuItem Header="{services:Loc SectionFps}" IsCheckable="True" IsChecked="{Binding ShowFps, Mode=TwoWay}"/>
+                                <MenuItem Header="{services:Loc SectionCpu}" IsCheckable="True" IsChecked="{Binding ShowCpu, Mode=TwoWay}"/>
+                                <MenuItem Header="{services:Loc SectionGpu}" IsCheckable="True" IsChecked="{Binding ShowGpu, Mode=TwoWay}"/>
+                                <MenuItem Header="{services:Loc SectionRam}" IsCheckable="True" IsChecked="{Binding ShowRam, Mode=TwoWay}"/>
+                                <MenuItem Header="{services:Loc SidebarDrives}" IsCheckable="True" IsChecked="{Binding ShowDrives, Mode=TwoWay}"/>
+                                <MenuItem Header="{services:Loc SectionNetwork}" IsCheckable="True" IsChecked="{Binding ShowNetwork, Mode=TwoWay}"/>
+                            </ContextMenu>
+                        </Button.ContextMenu>
+                    </Button>
+                    <Button x:Name="CloseButton" Grid.Column="3" Style="{StaticResource SidebarIconButtonStyle}" Content="X" FontFamily="{StaticResource DisplayFont}" FontSize="18" ToolTip="{services:Loc SidebarClose}" Click="CloseButton_Click"/>
+                </Grid>
+            </Border>
+
+            <ScrollViewer x:Name="ModulesScrollViewer" Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="9,7,4,1">
+                <StackPanel x:Name="ModulesPanel">
+                    <Border Style="{StaticResource SidebarCardStyle}" BorderBrush="{StaticResource AccentHoverBrush}" Visibility="{Binding ShowFps, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="20"/>
+                            </Grid.RowDefinitions>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="{services:Loc SectionFps}" Style="{StaticResource SidebarHeadingStyle}"/>
+                                <TextBlock Grid.Column="1" Text="{Binding FpsTargetOrStatus}" ToolTip="{Binding FpsTargetOrStatus}" Style="{StaticResource SidebarMetricStyle}" HorizontalAlignment="Right" VerticalAlignment="Center" MaxWidth="215" TextTrimming="CharacterEllipsis"/>
+                            </Grid>
+                            <Grid Grid.Row="1" Margin="0,1,0,3">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="1.25*"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="{Binding CurrentFps}" Style="{StaticResource SidebarPrimaryValueStyle}" Foreground="{StaticResource AccentHoverBrush}"/>
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock Text="{services:Loc FpsAverage}" Style="{StaticResource SidebarMetricStyle}"/>
+                                    <TextBlock Text="{Binding AverageFps}" FontFamily="{StaticResource DisplayFont}" FontSize="15" Foreground="{StaticResource TextBrush}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Text="{services:Loc FpsOnePercentLow}" Style="{StaticResource SidebarMetricStyle}"/>
+                                    <TextBlock Text="{Binding OnePercentLowFps}" FontFamily="{StaticResource DisplayFont}" FontSize="15" Foreground="{StaticResource TextBrush}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="3">
+                                    <TextBlock Text="{services:Loc FpsHigh}" Style="{StaticResource SidebarMetricStyle}"/>
+                                    <TextBlock Text="{Binding HighFps}" FontFamily="{StaticResource DisplayFont}" FontSize="15" Foreground="{StaticResource TextBrush}"/>
+                                </StackPanel>
+                            </Grid>
+                            <views:Sparkline Grid.Row="2" Values="{Binding FrameTimeHistory}" MaxValue="{Binding FrameTimeGraphMaximum}" Stroke="{StaticResource AccentHoverBrush}" ShowGrid="False" ShowFill="False" Height="20"/>
+                        </Grid>
+                    </Border>
+
+                    <Border Style="{StaticResource SidebarCardStyle}" BorderBrush="{Binding Telemetry.CpuTemperatureStatus, Converter={StaticResource TemperatureStatusBrushConverter}}" Visibility="{Binding ShowCpu, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="20"/>
+                            </Grid.RowDefinitions>
+                            <TextBlock Text="{services:Loc SectionCpu}" Style="{StaticResource SidebarHeadingStyle}"/>
+                            <Grid Grid.Row="1" Margin="0,1,0,2">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="1.35*"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Telemetry.CpuTemperature, Converter={StaticResource UnavailableValueConverter}}" Style="{StaticResource SidebarPrimaryValueStyle}" Foreground="{Binding Telemetry.CpuTemperatureStatus, Converter={StaticResource TemperatureStatusBrushConverter}}"/>
+                                    <TextBlock Text="{services:Loc LabelTemperatureShort}" Style="{StaticResource SidebarMetricStyle}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding Telemetry.CpuUsage, Converter={StaticResource UnavailableValueConverter}}" FontFamily="{StaticResource DisplayFont}" FontSize="19" Foreground="{StaticResource TextBrush}"/>
+                                    <TextBlock Text="{services:Loc LabelUsage}" Style="{StaticResource SidebarMetricStyle}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding Telemetry.CpuPower, Converter={StaticResource UnavailableValueConverter}}" FontFamily="{StaticResource DisplayFont}" FontSize="19" Foreground="{StaticResource TextBrush}"/>
+                                    <TextBlock Text="{services:Loc LabelPower}" Style="{StaticResource SidebarMetricStyle}"/>
+                                </StackPanel>
+                            </Grid>
+                            <UniformGrid Grid.Row="2" Columns="3" Margin="0,0,0,2" Visibility="{Binding ShowMinMax, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <TextBlock Text="{Binding CpuTemperatureRange}" Style="{StaticResource SidebarMetricStyle}" Foreground="{StaticResource TextBrush}"/>
+                                <TextBlock Text="{Binding CpuUsageRange}" Style="{StaticResource SidebarMetricStyle}" Foreground="{StaticResource TextBrush}"/>
+                                <TextBlock Text="{Binding CpuPowerRange}" Style="{StaticResource SidebarMetricStyle}" Foreground="{StaticResource TextBrush}"/>
+                            </UniformGrid>
+                            <views:Sparkline Grid.Row="3" Values="{Binding Telemetry.CpuTemperatureHistory}" Stroke="{Binding Telemetry.CpuTemperatureStatus, Converter={StaticResource TemperatureStatusBrushConverter}}" ShowGrid="False" Height="20"/>
+                        </Grid>
+                    </Border>
+
+                    <Border Style="{StaticResource SidebarCardStyle}" BorderBrush="{Binding Telemetry.GpuTemperatureStatus, Converter={StaticResource TemperatureStatusBrushConverter}}" Visibility="{Binding ShowGpu, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="20"/>
+                            </Grid.RowDefinitions>
+                            <TextBlock Text="{services:Loc SectionGpu}" Style="{StaticResource SidebarHeadingStyle}"/>
+                            <Grid Grid.Row="1" Margin="0,1,0,2">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="1.35*"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Telemetry.GpuTemperature, Converter={StaticResource UnavailableValueConverter}}" Style="{StaticResource SidebarPrimaryValueStyle}" Foreground="{Binding Telemetry.GpuTemperatureStatus, Converter={StaticResource TemperatureStatusBrushConverter}}"/>
+                                    <TextBlock Text="{services:Loc LabelTemperatureShort}" Style="{StaticResource SidebarMetricStyle}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding Telemetry.GpuUsage, Converter={StaticResource UnavailableValueConverter}}" FontFamily="{StaticResource DisplayFont}" FontSize="19" Foreground="{StaticResource TextBrush}"/>
+                                    <TextBlock Text="{services:Loc LabelUsage}" Style="{StaticResource SidebarMetricStyle}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding Telemetry.GpuPower, Converter={StaticResource UnavailableValueConverter}}" FontFamily="{StaticResource DisplayFont}" FontSize="19" Foreground="{StaticResource TextBrush}"/>
+                                    <TextBlock Text="{services:Loc LabelPower}" Style="{StaticResource SidebarMetricStyle}"/>
+                                </StackPanel>
+                            </Grid>
+                            <UniformGrid Grid.Row="2" Columns="3" Margin="0,0,0,2" Visibility="{Binding ShowMinMax, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <TextBlock Text="{Binding GpuTemperatureRange}" Style="{StaticResource SidebarMetricStyle}" Foreground="{StaticResource TextBrush}"/>
+                                <TextBlock Text="{Binding GpuUsageRange}" Style="{StaticResource SidebarMetricStyle}" Foreground="{StaticResource TextBrush}"/>
+                                <TextBlock Text="{Binding GpuPowerRange}" Style="{StaticResource SidebarMetricStyle}" Foreground="{StaticResource TextBrush}"/>
+                            </UniformGrid>
+                            <views:Sparkline Grid.Row="3" Values="{Binding Telemetry.GpuTemperatureHistory}" Stroke="{Binding Telemetry.GpuTemperatureStatus, Converter={StaticResource TemperatureStatusBrushConverter}}" ShowGrid="False" Height="20"/>
+                        </Grid>
+                    </Border>
+
+                    <Border Style="{StaticResource SidebarCardStyle}" BorderBrush="{StaticResource WarningBrush}" Visibility="{Binding ShowRam, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="20"/>
+                            </Grid.RowDefinitions>
+                            <Grid>
+                                <TextBlock Text="{services:Loc SectionRam}" Style="{StaticResource SidebarHeadingStyle}" Foreground="{StaticResource WarningBrush}"/>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                    <TextBlock Text="{services:Loc LabelTemperatureShort}" Style="{StaticResource SidebarMetricStyle}" Margin="0,0,5,0"/>
+                                    <TextBlock Text="{Binding Telemetry.RamTemperature, Converter={StaticResource UnavailableValueConverter}}" Style="{StaticResource SidebarMetricStyle}" Foreground="{StaticResource WarningBrush}"/>
+                                </StackPanel>
+                            </Grid>
+                            <Grid Grid.Row="1" Margin="0,1,0,2">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="1.35*"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Telemetry.RamUsage, Converter={StaticResource UnavailableValueConverter}}" Style="{StaticResource SidebarPrimaryValueStyle}" Foreground="{StaticResource WarningBrush}"/>
+                                    <TextBlock Text="{services:Loc LabelUsage}" Style="{StaticResource SidebarMetricStyle}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding Telemetry.RamUsed, Converter={StaticResource UnavailableValueConverter}}" FontFamily="{StaticResource DisplayFont}" FontSize="16" Foreground="{StaticResource TextBrush}"/>
+                                    <TextBlock Text="{services:Loc LabelUsed}" Style="{StaticResource SidebarMetricStyle}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding Telemetry.RamAvailable, Converter={StaticResource UnavailableValueConverter}}" FontFamily="{StaticResource DisplayFont}" FontSize="16" Foreground="{StaticResource TextBrush}"/>
+                                    <TextBlock Text="{services:Loc LabelAvailable}" Style="{StaticResource SidebarMetricStyle}"/>
+                                </StackPanel>
+                            </Grid>
+                            <UniformGrid Grid.Row="2" Columns="2" Margin="0,0,0,2" Visibility="{Binding ShowMinMax, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <TextBlock Text="{Binding RamUsageRange}" Style="{StaticResource SidebarMetricStyle}" Foreground="{StaticResource TextBrush}"/>
+                                <TextBlock Text="{Binding RamTemperatureRange}" Style="{StaticResource SidebarMetricStyle}" Foreground="{StaticResource TextBrush}"/>
+                            </UniformGrid>
+                            <views:Sparkline Grid.Row="3" Values="{Binding Telemetry.RamUsageHistory}" MaxValue="100" Stroke="{StaticResource WarningBrush}" ShowGrid="False" Height="20"/>
+                        </Grid>
+                    </Border>
+
+                    <Border Style="{StaticResource SidebarCardStyle}" BorderBrush="{Binding SelectedDrive.TemperatureStatus, Converter={StaticResource TemperatureStatusBrushConverter}}" Visibility="{Binding ShowDrives, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="20"/>
+                            </Grid.RowDefinitions>
+                            <Grid>
+                                <TextBlock Text="{services:Loc SidebarDrives}" Style="{StaticResource SidebarHeadingStyle}"/>
+                                <Button HorizontalAlignment="Right" Style="{StaticResource SidebarIconButtonStyle}" Width="28" Height="24" Content="..." FontFamily="{StaticResource DisplayFont}" FontSize="16" ToolTip="{services:Loc SidebarSelectDrive}" Click="DriveMenuButton_Click"/>
+                            </Grid>
+                            <Grid Grid.Row="1" Margin="0,1,0,2">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="105"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Text="{Binding SelectedDrive.Temperature, TargetNullValue=—, Converter={StaticResource UnavailableValueConverter}}" Style="{StaticResource SidebarPrimaryValueStyle}" Foreground="{Binding SelectedDrive.TemperatureStatus, Converter={StaticResource TemperatureStatusBrushConverter}}"/>
+                                    <StackPanel Orientation="Horizontal" Visibility="{Binding ShowMinMax, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <TextBlock Text="{services:Loc LabelMin}" Style="{StaticResource SidebarMetricStyle}" Margin="0,0,4,0"/>
+                                        <TextBlock Text="{Binding SelectedDrive.MinTemperature, TargetNullValue=—}" Style="{StaticResource SidebarMetricStyle}" Foreground="{StaticResource TextBrush}"/>
+                                        <TextBlock Text="{services:Loc LabelMax}" Style="{StaticResource SidebarMetricStyle}" Margin="12,0,4,0"/>
+                                        <TextBlock Text="{Binding SelectedDrive.MaxTemperature, TargetNullValue=—}" Style="{StaticResource SidebarMetricStyle}" Foreground="{StaticResource TextBrush}"/>
+                                    </StackPanel>
+                                </StackPanel>
+                                <TextBlock Grid.Column="1" Text="{Binding SelectedDrive.Name, TargetNullValue=—}" FontFamily="{StaticResource DisplayFont}" FontSize="13" Foreground="{StaticResource TextBrush}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                            </Grid>
+                            <views:Sparkline Grid.Row="2" Values="{Binding SelectedDrive.History}" Stroke="{Binding SelectedDrive.TemperatureStatus, Converter={StaticResource TemperatureStatusBrushConverter}}" ShowGrid="False" Height="20"/>
+                        </Grid>
+                    </Border>
+
+                    <Border Style="{StaticResource SidebarCardStyle}" BorderBrush="{StaticResource TelemetryBrush}" Visibility="{Binding ShowNetwork, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="20"/>
+                            </Grid.RowDefinitions>
+                            <Grid>
+                                <TextBlock Text="{services:Loc SectionNetwork}" Style="{StaticResource SidebarHeadingStyle}" Foreground="{StaticResource TelemetryBrush}"/>
+                                <TextBlock Text="{Binding NetworkAdapterSummary}" HorizontalAlignment="Right" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="200">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock" BasedOn="{StaticResource SidebarMetricStyle}">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding HasActiveNetworkAdapter}" Value="False">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                                <TextBlock Text="{services:Loc NetworkNoActiveAdapter}" HorizontalAlignment="Right" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="200">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock" BasedOn="{StaticResource SidebarMetricStyle}">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding HasActiveNetworkAdapter}" Value="False">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </Grid>
+                            <Grid Grid.Row="1" Margin="0,1,0,2">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Data="M 4 0 L 8 4 L 5.5 4 L 5.5 11 L 2.5 11 L 2.5 4 L 0 4 Z" Fill="{StaticResource TelemetryBrush}" Width="12" Height="16" Stretch="Uniform" RenderTransformOrigin="0.5,0.5" Margin="0,0,8,0">
+                                        <Path.RenderTransform>
+                                            <RotateTransform Angle="180"/>
+                                        </Path.RenderTransform>
+                                    </Path>
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding NetworkDownload}" FontFamily="{StaticResource DisplayFont}" FontSize="17" Foreground="{StaticResource TelemetryBrush}"/>
+                                        <TextBlock Text="{services:Loc NetworkDownload}" Style="{StaticResource SidebarMetricStyle}"/>
+                                    </StackPanel>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                    <Path Data="M 4 0 L 8 4 L 5.5 4 L 5.5 11 L 2.5 11 L 2.5 4 L 0 4 Z" Fill="#4A9CE8" Width="12" Height="16" Stretch="Uniform" Margin="0,0,8,0"/>
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding NetworkUpload}" FontFamily="{StaticResource DisplayFont}" FontSize="17" Foreground="#4A9CE8"/>
+                                        <TextBlock Text="{services:Loc NetworkUpload}" Style="{StaticResource SidebarMetricStyle}"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Grid>
+                            <UniformGrid Grid.Row="2" Columns="2" Margin="0,0,0,2" Visibility="{Binding ShowMinMax, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <TextBlock Text="{Binding NetworkDownloadRange}" Style="{StaticResource SidebarMetricStyle}" Foreground="{StaticResource TextBrush}"/>
+                                <TextBlock Text="{Binding NetworkUploadRange}" Style="{StaticResource SidebarMetricStyle}" Foreground="{StaticResource TextBrush}"/>
+                            </UniformGrid>
+                            <Grid Grid.Row="3" Height="20">
+                                <views:Sparkline Values="{Binding NetworkDownloadHistory}" MaxValue="{Binding NetworkGraphMaximum}" Stroke="{StaticResource TelemetryBrush}" ShowGrid="False" ShowFill="False" Height="20"/>
+                                <views:Sparkline Values="{Binding NetworkUploadHistory}" MaxValue="{Binding NetworkGraphMaximum}" Stroke="#4A9CE8" ShowGrid="False" ShowFill="False" TransparentBackground="True" Height="20" Opacity="0.8"/>
+                            </Grid>
+                        </Grid>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+
+            <Border Grid.Row="2" Background="{Binding BackgroundOpacity, Converter={StaticResource SidebarBackgroundBrushConverter}, ConverterParameter=#101112}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0">
+                <Grid Margin="8,0">
+                    <ToggleButton x:Name="OpacityButton" Style="{StaticResource SidebarFooterToggleStyle}" Width="74" Height="26" HorizontalAlignment="Left" Foreground="{StaticResource MutedTextBrush}" ToolTip="{services:Loc SidebarTransparency}">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                            <Path Data="M1,1 H11 V11 H1 Z M3,3 H6 V6 H3 Z M6,6 H9 V9 H6 Z" Stroke="{StaticResource AccentHoverBrush}" StrokeThickness="1" Width="13" Height="13" Stretch="Uniform" Margin="0,0,7,0"/>
+                            <TextBlock Text="{Binding BackgroundOpacityPercent}" FontFamily="{StaticResource DisplayFont}" FontSize="11"/>
+                        </StackPanel>
+                    </ToggleButton>
+                    <Popup PlacementTarget="{Binding ElementName=OpacityButton}" Placement="Top" IsOpen="{Binding IsChecked, ElementName=OpacityButton, Mode=TwoWay}" StaysOpen="False" AllowsTransparency="True">
+                        <Border Width="220" Padding="12,9" Background="{StaticResource PopupBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
+                            <StackPanel>
+                                <DockPanel Margin="0,0,0,4">
+                                    <TextBlock Text="{services:Loc SidebarTransparency}" Style="{StaticResource SidebarMetricStyle}" DockPanel.Dock="Left"/>
+                                    <TextBlock Text="{Binding BackgroundOpacityPercent}" FontFamily="{StaticResource DisplayFont}" FontSize="11" Foreground="{StaticResource AccentHoverBrush}" HorizontalAlignment="Right"/>
+                                </DockPanel>
+                                <Slider Style="{StaticResource SidebarSliderStyle}" Minimum="0.4" Maximum="1" SmallChange="0.05" LargeChange="0.1" Value="{Binding BackgroundOpacity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                        </Border>
+                    </Popup>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <ToggleButton x:Name="TopDockButton" Style="{StaticResource SidebarDockButtonStyle}" IsChecked="{Binding DockEdge, Mode=TwoWay, Converter={StaticResource SidebarDockEdgeMatchConverter}, ConverterParameter=Top}" ToolTip="{services:Loc SidebarDockTop}">
+                            <Path Data="M2,2 H14 M8,5 V14 M3,8 L8,3 L13,8" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" StrokeThickness="1.5" Width="16" Height="16" Stretch="Uniform"/>
+                        </ToggleButton>
+                        <ToggleButton x:Name="BottomDockButton" Style="{StaticResource SidebarDockButtonStyle}" IsChecked="{Binding DockEdge, ConverterParameter=Bottom, Converter={StaticResource SidebarDockEdgeMatchConverter}, Mode=TwoWay}" ToolTip="{services:Loc SidebarDockBottom}">
+                            <Path Data="M2,14 H14 M8,2 V11 M3,8 L8,13 L13,8" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type ToggleButton}}}" StrokeThickness="1.5" Width="16" Height="16" Stretch="Uniform"/>
+                        </ToggleButton>
+                        <ToggleButton x:Name="RightDockButton" Style="{StaticResource SidebarDockButtonStyle}" IsChecked="{Binding DockEdge, Mode=TwoWay, Converter={StaticResource SidebarDockEdgeMatchConverter}, ConverterParameter=Right}" ToolTip="{services:Loc SidebarDockRight}">
+                            <Path Data="M14,2 V14 M2,8 H11 M8,3 L13,8 L8,13" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" StrokeThickness="1.5" Width="16" Height="16" Stretch="Uniform"/>
+                        </ToggleButton>
+                        <ToggleButton x:Name="LeftDockButton" Style="{StaticResource SidebarDockButtonStyle}" IsChecked="{Binding DockEdge, Mode=TwoWay, Converter={StaticResource SidebarDockEdgeMatchConverter}, ConverterParameter=Left}" ToolTip="{services:Loc SidebarDockLeft}">
+                            <Path Data="M2,2 V14 M5,8 H14 M8,3 L3,8 L8,13" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" StrokeThickness="1.5" Width="16" Height="16" Stretch="Uniform"/>
+                        </ToggleButton>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Grid>
+    </Border>
+</Window>

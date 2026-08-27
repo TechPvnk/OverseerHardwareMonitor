@@ -94,6 +94,25 @@ Notes
 - The project uses the LibreHardwareMonitor NuGet package. NuGet restore will download the package during build.
 - User-specific files (*.csproj.user) are ignored and should not be committed.
 
+Release Package
+---------------
+- Version: 1.0.0
+- Target: Windows x64 with the .NET 8 Desktop Runtime installed.
+- Publish from the project directory:
+  - dotnet publish Overseer.csproj -p:PublishProfile=win-x64
+- The publish output is written to:
+  - bin\Release\net8.0-windows\win-x64\publish
+- The published folder includes the PawnIO helper, the separately distributed Smartmontools executable and notices, the project license, third-party notices, and English/Spanish resources.
+
+Release Smoke Test
+------------------
+- Start Overseer and verify that the Temps, Disk Health, and System Info tabs load.
+- Verify CPU/GPU/RAM values are plausible and RAM used plus available approximately matches installed memory.
+- Open Disk Health and confirm SMART data either loads or shows an explicit unavailable state.
+- Use Tools > Reset Statistics and confirm CPU, GPU, RAM, and every drive chart/minimum/maximum reset.
+- Use Tools > Refresh System Information after changing a display connection.
+- Verify File export, Edit copy commands, English/Spanish switching, About, and Tools > Open Log.
+
 License
 -------
 This project is licensed under the MPL 2.0 License. See LICENSE for details.

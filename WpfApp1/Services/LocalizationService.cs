@@ -153,7 +153,8 @@ public sealed class LocFormatExtension : MarkupExtension
         MultiBinding binding = new()
         {
             Converter = new LocalizedFormatConverter(),
-            ConverterParameter = Key
+            ConverterParameter = Key,
+            Mode = BindingMode.OneWay
         };
 
         binding.Bindings.Add(new Binding(Path));

@@ -32,7 +32,8 @@
   <data name="FormatWrites" xml:space="preserve"><value>Writes: {0}</value></data>
   <data name="FormatPowerCycles" xml:space="preserve"><value>Power Cycles: {0}</value></data>
   <data name="FormatPowerHours" xml:space="preserve"><value>Power Hours: {0}</value></data>
-  <data name="FormatClock" xml:space="preserve"><value>Clock: {0}</value></data>
+    <data name="FormatClock" xml:space="preserve"><value>Clock: {0}</value></data>
+    <data name="FormatDriverVersion" xml:space="preserve"><value>Driver version: {0}</value></data>
   <data name="FormatCoresThreads" xml:space="preserve"><value>Cores/Threads: {0}</value></data>
   <data name="FormatCaches" xml:space="preserve"><value>Caches: {0}</value></data>
   <data name="FormatTdp" xml:space="preserve"><value>TDP: {0}</value></data>
@@ -46,4 +47,43 @@
   <data name="NoGraphicsDevices" xml:space="preserve"><value>No graphics display details available</value></data>
   <data name="NoAudioDevices" xml:space="preserve"><value>No audio devices available</value></data>
   <data name="CommandRefreshSystemInformation" xml:space="preserve"><value>Refresh System Information</value></data>
+  <data name="SidebarMode" xml:space="preserve"><value>Sidebar Mode</value></data>
+  <data name="SidebarAlwaysOnTop" xml:space="preserve"><value>Keep Sidebar Mode always on top</value></data>
+  <data name="SidebarClose" xml:space="preserve"><value>Close Sidebar Mode</value></data>
+  <data name="SidebarDrives" xml:space="preserve"><value>DRIVES</value></data>
+  <data name="SidebarSettings" xml:space="preserve"><value>Sidebar settings</value></data>
+  <data name="SidebarShowMinMax" xml:space="preserve"><value>Show Min/Max</value></data>
+  <data name="SidebarSelectDrive" xml:space="preserve"><value>Select drive</value></data>
+  <data name="SidebarClickThrough" xml:space="preserve"><value>Click-through mode</value></data>
+  <data name="SidebarTransparency" xml:space="preserve"><value>Transparency</value></data>
+  <data name="SidebarDockLeft" xml:space="preserve"><value>Dock left</value></data>
+  <data name="SidebarDockRight" xml:space="preserve"><value>Dock right</value></data>
+  <data name="SidebarDockTop" xml:space="preserve"><value>Dock top</value></data>
+  <data name="SidebarDockBottom" xml:space="preserve"><value>Dock bottom</value></data>
+  <data name="SectionFps" xml:space="preserve"><value>FPS</value></data>
+  <data name="FpsAverage" xml:space="preserve"><value>AVG</value></data>
+  <data name="FpsOnePercentLow" xml:space="preserve"><value>1% LOW</value></data>
+  <data name="FpsHigh" xml:space="preserve"><value>1% HIGH</value></data>
+  <data name="FpsInitializing" xml:space="preserve"><value>Starting frame monitor...</value></data>
+  <data name="FpsNoActiveApplication" xml:space="preserve"><value>No active 3D application</value></data>
+  <data name="FpsNoNewFrames" xml:space="preserve"><value>No new frames</value></data>
+  <data name="FpsPresentMonMissing" xml:space="preserve"><value>PresentMon component missing</value></data>
+  <data name="FpsAccessDenied" xml:space="preserve"><value>Frame monitoring permission denied</value></data>
+  <data name="FpsMonitorUnavailable" xml:space="preserve"><value>Frame monitoring unavailable</value></data>
+  <data name="SectionNetwork" xml:space="preserve"><value>NETWORK</value></data>
+  <data name="NetworkDownload" xml:space="preserve"><value>Download</value></data>
+  <data name="NetworkUpload" xml:space="preserve"><value>Upload</value></data>
+  <data name="NetworkDownloadRange" xml:space="preserve"><value>Download Min/Max</value></data>
+  <data name="NetworkUploadRange" xml:space="preserve"><value>Upload Min/Max</value></data>
+  <data name="NetworkConnected" xml:space="preserve"><value>Status: Connected</value></data>
+  <data name="NetworkNoActiveAdapter" xml:space="preserve"><value>No active network adapter</value></data>
+  <data name="FormatNetworkType" xml:space="preserve"><value>Type: {0}</value></data>
+  <data name="FormatNetworkLinkSpeed" xml:space="preserve"><value>Link speed: {0}</value></data>
+  <data name="FormatNetworkMaximumLinkSpeed" xml:space="preserve"><value>Maximum link speed: {0}</value></data>
+  <data name="FormatNetworkCurrentLinkSpeed" xml:space="preserve"><value>Current link speed: {0}</value></data>
+  <data name="FormatNetworkDescription" xml:space="preserve"><value>Vendor description: {0}</value></data>
+  <data name="FormatNetworkHardwareId" xml:space="preserve"><value>Hardware ID: {0}</value></data>
+  <data name="FormatNetworkIpv4" xml:space="preserve"><value>IPv4: {0}</value></data>
+  <data name="FormatNetworkIpv6" xml:space="preserve"><value>IPv6: {0}</value></data>
+  <data name="FormatNetworkMac" xml:space="preserve"><value>MAC: {0}</value></data>
 </root>

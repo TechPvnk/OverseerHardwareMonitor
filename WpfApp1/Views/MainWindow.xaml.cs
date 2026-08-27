@@ -10,6 +10,7 @@ using System.Windows.Media.Imaging;
 using Microsoft.Win32;
 using Overseer.Services;
 using Overseer.ViewModels;
+using Overseer.Views;
 using Forms = System.Windows.Forms;
 
 namespace Overseer
@@ -21,8 +22,11 @@ namespace Overseer
     {
         private readonly MainViewModel _viewModel;
         private Forms.NotifyIcon? _trayIcon;
+        private System.Drawing.Icon? _trayIconGraphic;
         private Forms.ToolStripMenuItem? _trayOpenMenuItem;
         private Forms.ToolStripMenuItem? _trayExitMenuItem;
+        private readonly SidebarSettingsService _sidebarSettingsService = SidebarSettingsService.Instance;
+        private SidebarWindow? _sidebarWindow;
         private bool _exitRequested;
 
         public MainWindow()
@@ -32,9 +36,11 @@ namespace Overseer
             // Instantiate the ViewModel and bind it to the Window's DataContext
             _viewModel = new MainViewModel();
             DataContext = _viewModel;
+            SidebarClickThroughMenuItem.IsChecked = _sidebarSettingsService.Settings.IsClickThrough;
             InitializeTrayIcon();
             LocalizationService.Instance.PropertyChanged += LocalizationChanged;
             UpdateLocalizedChrome();
+            Loaded += MainWindow_Loaded;
         }
 
         protected override void OnStateChanged(EventArgs e)
@@ -61,10 +67,27 @@ namespace Overseer
 
         protected override void OnClosed(EventArgs e)
         {
+            Loaded -= MainWindow_Loaded;
             LocalizationService.Instance.PropertyChanged -= LocalizationChanged;
+            if (_sidebarWindow is not null)
+            {
+                _sidebarWindow.Closed -= SidebarWindow_Closed;
+                _sidebarWindow.ClickThroughChanged -= SidebarWindow_ClickThroughChanged;
+                _sidebarWindow.Close();
+                _sidebarWindow = null;
+            }
             _trayIcon?.Dispose();
+            _trayIconGraphic?.Dispose();
             _viewModel.Dispose();
             base.OnClosed(e);
+        }
+
+        private void MainWindow_Loaded(object sender, RoutedEventArgs e)
+        {
+            if (_sidebarSettingsService.Settings.IsOpen)
+            {
+                OpenSidebarMode();
+            }
         }
 
         private void ExitMenuItem_Click(object sender, RoutedEventArgs e)
@@ -85,11 +108,30 @@ namespace Overseer
             _trayIcon = new Forms.NotifyIcon
             {
                 Text = L("AppTitle"),
-                Icon = System.Drawing.SystemIcons.Application,
+                Icon = LoadTrayIcon() ?? System.Drawing.SystemIcons.Application,
                 ContextMenuStrip = menu,
                 Visible = false
             };
             _trayIcon.DoubleClick += (_, _) => RestoreFromTray();
+        }
+
+        private System.Drawing.Icon? LoadTrayIcon()
+        {
+            try
+            {
+                string iconPath = Path.Combine(AppContext.BaseDirectory, "Themes", "favicon.ico");
+                if (File.Exists(iconPath))
+                {
+                    _trayIconGraphic = new System.Drawing.Icon(iconPath);
+                    return _trayIconGraphic;
+                }
+            }
+            catch (Exception ex)
+            {
+                AppLog.Write("Unable to load Overseer favicon for the tray icon.", ex);
+            }
+
+            return null;
         }
 
         private void MinimizeToTrayMenuItem_Click(object sender, RoutedEventArgs e)
@@ -102,6 +144,97 @@ namespace Overseer
             {
                 _trayIcon.Visible = false;
             }
+        }
+
+        private void SidebarModeMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            SetSidebarModeOpen(SidebarModeMenuItem.IsChecked);
+        }
+
+        private void SidebarModeHeaderButton_Click(object sender, RoutedEventArgs e)
+        {
+            SetSidebarModeOpen(SidebarModeHeaderButton.IsChecked == true);
+        }
+
+        private void SidebarClickThroughMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            bool isClickThrough = SidebarClickThroughMenuItem.IsChecked;
+            if (_sidebarWindow is not null)
+            {
+                _sidebarWindow.IsClickThrough = isClickThrough;
+            }
+            else
+            {
+                _sidebarSettingsService.Settings.IsClickThrough = isClickThrough;
+                _sidebarSettingsService.Save();
+            }
+        }
+
+        private void SetSidebarModeOpen(bool isOpen)
+        {
+            if (isOpen)
+            {
+                OpenSidebarMode();
+            }
+            else
+            {
+                _sidebarWindow?.Close();
+            }
+        }
+
+        private void OpenSidebarMode()
+        {
+            if (_sidebarWindow is null)
+            {
+                SidebarViewModel sidebarViewModel = new(_viewModel, _sidebarSettingsService);
+                _sidebarWindow = new SidebarWindow(sidebarViewModel);
+                _sidebarWindow.Closed += SidebarWindow_Closed;
+                _sidebarWindow.ClickThroughChanged += SidebarWindow_ClickThroughChanged;
+                _sidebarWindow.Show();
+            }
+            else
+            {
+                _sidebarWindow.Show();
+                if (!_sidebarWindow.IsClickThrough)
+                {
+                    _sidebarWindow.Activate();
+                }
+            }
+
+            _sidebarSettingsService.Settings.IsOpen = true;
+            _sidebarSettingsService.Save();
+            UpdateSidebarModeState(true);
+            SidebarClickThroughMenuItem.IsChecked = _sidebarWindow.IsClickThrough;
+            AppLog.Write("Sidebar Mode opened.");
+        }
+
+        private void SidebarWindow_Closed(object? sender, EventArgs e)
+        {
+            if (_sidebarWindow is not null)
+            {
+                _sidebarWindow.Closed -= SidebarWindow_Closed;
+                _sidebarWindow.ClickThroughChanged -= SidebarWindow_ClickThroughChanged;
+                _sidebarWindow = null;
+            }
+
+            _sidebarSettingsService.Settings.IsOpen = false;
+            _sidebarSettingsService.Save();
+            UpdateSidebarModeState(false);
+            AppLog.Write("Sidebar Mode closed.");
+        }
+
+        private void SidebarWindow_ClickThroughChanged(object? sender, EventArgs e)
+        {
+            if (_sidebarWindow is not null)
+            {
+                SidebarClickThroughMenuItem.IsChecked = _sidebarWindow.IsClickThrough;
+            }
+        }
+
+        private void UpdateSidebarModeState(bool isOpen)
+        {
+            SidebarModeMenuItem.IsChecked = isOpen;
+            SidebarModeHeaderButton.IsChecked = isOpen;
         }
 
         private void HideToTray()
@@ -414,6 +547,17 @@ namespace Overseer
             {
                 builder.AppendLine($"Audio: {audio}");
             }
+            foreach (NetworkAdapterInfo adapter in _viewModel.NetworkAdapters)
+            {
+                builder.AppendLine($"Network Adapter: {adapter.Name}");
+                builder.AppendLine($"  Description: {adapter.Description}");
+                builder.AppendLine($"  Type: {adapter.InterfaceType}");
+                builder.AppendLine($"  Status: Connected");
+                builder.AppendLine($"  Link Speed: {adapter.LinkSpeed}");
+                builder.AppendLine($"  IPv4: {adapter.Ipv4Address}");
+                builder.AppendLine($"  IPv6: {adapter.Ipv6Address}");
+                builder.AppendLine($"  MAC: {adapter.MacAddress}");
+            }
         }
 
         private void UpdateLocalizedChrome()
@@ -545,6 +689,17 @@ namespace Overseer
             {
                 AddCsvRow(builder, "System Info", "Audio", audio);
             }
+            foreach (NetworkAdapterInfo adapter in _viewModel.NetworkAdapters)
+            {
+                string section = $"System Info - Network - {adapter.Name}";
+                AddCsvRow(builder, section, "Description", adapter.Description);
+                AddCsvRow(builder, section, "Type", adapter.InterfaceType);
+                AddCsvRow(builder, section, "Status", "Connected");
+                AddCsvRow(builder, section, "Link Speed", adapter.LinkSpeed);
+                AddCsvRow(builder, section, "IPv4", adapter.Ipv4Address);
+                AddCsvRow(builder, section, "IPv6", adapter.Ipv6Address);
+                AddCsvRow(builder, section, "MAC", adapter.MacAddress);
+            }
             return builder.ToString();
         }
 
@@ -597,6 +752,11 @@ namespace Overseer
         private void RefreshSystemInformationMenuItem_Click(object sender, RoutedEventArgs e)
         {
             _viewModel.RefreshSystemInformation();
+        }
+
+        private void OpenLogMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            AppLog.Open();
         }
 
         private void AlertSoundMenuItem_Click(object sender, RoutedEventArgs e)

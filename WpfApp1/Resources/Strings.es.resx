@@ -32,7 +32,8 @@
   <data name="FormatWrites" xml:space="preserve"><value>Escrituras: {0}</value></data>
   <data name="FormatPowerCycles" xml:space="preserve"><value>Ciclos de encendido: {0}</value></data>
   <data name="FormatPowerHours" xml:space="preserve"><value>Horas de encendido: {0}</value></data>
-  <data name="FormatClock" xml:space="preserve"><value>Reloj: {0}</value></data>
+    <data name="FormatClock" xml:space="preserve"><value>Reloj: {0}</value></data>
+    <data name="FormatDriverVersion" xml:space="preserve"><value>Versión del controlador: {0}</value></data>
   <data name="FormatCoresThreads" xml:space="preserve"><value>Núcleos/hilos: {0}</value></data>
   <data name="FormatCaches" xml:space="preserve"><value>Cachés: {0}</value></data>
   <data name="FormatTdp" xml:space="preserve"><value>TDP: {0}</value></data>
@@ -46,4 +47,43 @@
   <data name="NoGraphicsDevices" xml:space="preserve"><value>No hay detalles de pantalla disponibles</value></data>
   <data name="NoAudioDevices" xml:space="preserve"><value>No hay dispositivos de audio disponibles</value></data>
   <data name="CommandRefreshSystemInformation" xml:space="preserve"><value>Actualizar información del sistema</value></data>
+  <data name="SidebarMode" xml:space="preserve"><value>Modo barra lateral</value></data>
+  <data name="SidebarAlwaysOnTop" xml:space="preserve"><value>Mantener la barra lateral siempre visible</value></data>
+  <data name="SidebarClose" xml:space="preserve"><value>Cerrar el modo barra lateral</value></data>
+  <data name="SidebarDrives" xml:space="preserve"><value>UNIDADES</value></data>
+  <data name="SidebarSettings" xml:space="preserve"><value>Configuración de la barra lateral</value></data>
+  <data name="SidebarShowMinMax" xml:space="preserve"><value>Mostrar mín./máx.</value></data>
+  <data name="SidebarSelectDrive" xml:space="preserve"><value>Seleccionar unidad</value></data>
+  <data name="SidebarClickThrough" xml:space="preserve"><value>Modo clic a través</value></data>
+  <data name="SidebarTransparency" xml:space="preserve"><value>Transparencia</value></data>
+  <data name="SidebarDockLeft" xml:space="preserve"><value>Acoplar a la izquierda</value></data>
+  <data name="SidebarDockRight" xml:space="preserve"><value>Acoplar a la derecha</value></data>
+  <data name="SidebarDockTop" xml:space="preserve"><value>Acoplar arriba</value></data>
+  <data name="SidebarDockBottom" xml:space="preserve"><value>Acoplar abajo</value></data>
+  <data name="SectionFps" xml:space="preserve"><value>FPS</value></data>
+  <data name="FpsAverage" xml:space="preserve"><value>PROM.</value></data>
+  <data name="FpsOnePercentLow" xml:space="preserve"><value>1% BAJO</value></data>
+  <data name="FpsHigh" xml:space="preserve"><value>1% ALTO</value></data>
+  <data name="FpsInitializing" xml:space="preserve"><value>Iniciando monitor de fotogramas...</value></data>
+  <data name="FpsNoActiveApplication" xml:space="preserve"><value>No hay una aplicación 3D activa</value></data>
+  <data name="FpsNoNewFrames" xml:space="preserve"><value>No hay fotogramas nuevos</value></data>
+  <data name="FpsPresentMonMissing" xml:space="preserve"><value>Falta el componente PresentMon</value></data>
+  <data name="FpsAccessDenied" xml:space="preserve"><value>Permiso de monitoreo de fotogramas denegado</value></data>
+  <data name="FpsMonitorUnavailable" xml:space="preserve"><value>Monitoreo de fotogramas no disponible</value></data>
+  <data name="SectionNetwork" xml:space="preserve"><value>RED</value></data>
+  <data name="NetworkDownload" xml:space="preserve"><value>Descarga</value></data>
+  <data name="NetworkUpload" xml:space="preserve"><value>Subida</value></data>
+  <data name="NetworkDownloadRange" xml:space="preserve"><value>Descarga mín./máx.</value></data>
+  <data name="NetworkUploadRange" xml:space="preserve"><value>Subida mín./máx.</value></data>
+  <data name="NetworkConnected" xml:space="preserve"><value>Estado: Conectado</value></data>
+  <data name="NetworkNoActiveAdapter" xml:space="preserve"><value>No hay un adaptador de red activo</value></data>
+  <data name="FormatNetworkType" xml:space="preserve"><value>Tipo: {0}</value></data>
+  <data name="FormatNetworkLinkSpeed" xml:space="preserve"><value>Velocidad de enlace: {0}</value></data>
+  <data name="FormatNetworkMaximumLinkSpeed" xml:space="preserve"><value>Velocidad máxima de enlace: {0}</value></data>
+  <data name="FormatNetworkCurrentLinkSpeed" xml:space="preserve"><value>Velocidad actual de enlace: {0}</value></data>
+  <data name="FormatNetworkDescription" xml:space="preserve"><value>Descripción del proveedor: {0}</value></data>
+  <data name="FormatNetworkHardwareId" xml:space="preserve"><value>ID de hardware: {0}</value></data>
+  <data name="FormatNetworkIpv4" xml:space="preserve"><value>IPv4: {0}</value></data>
+  <data name="FormatNetworkIpv6" xml:space="preserve"><value>IPv6: {0}</value></data>
+  <data name="FormatNetworkMac" xml:space="preserve"><value>MAC: {0}</value></data>
 </root>

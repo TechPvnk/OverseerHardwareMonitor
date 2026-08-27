@@ -14,6 +14,10 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AssemblyName>Overseer</AssemblyName>
     <RootNamespace>Overseer</RootNamespace>
+    <Version>1.0.0</Version>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+    <InformationalVersion>1.0.0</InformationalVersion>
   </PropertyGroup>
   <!-- Vortice.DXGI removed: using native DXGI interop implementation instead -->
 
@@ -24,6 +28,8 @@
     <None Remove="Themes\overseerlogo.png" />
     <None Remove="Themes\Splash.png" />
     <None Remove="Themes\overseer-brand.png" />
+    <None Remove="Themes\overseer-sidebar-icon.png" />
+    <None Remove="Themes\AOT-Overseer-icon.png" />
     <None Remove="Fonts\Quantico-Regular.ttf" />
     <None Remove="Fonts\Quantico-Bold.ttf" />
   </ItemGroup>
@@ -56,6 +62,10 @@
     <Resource Include="Themes\overseer-brand.png">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </Resource>
+    <Resource Include="Themes\overseer-sidebar-icon.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Themes\AOT-Overseer-icon.png" />
     <Resource Include="Fonts\Quantico-Regular.ttf" />
     <Resource Include="Fonts\Quantico-Bold.ttf" />
   </ItemGroup>
@@ -67,6 +77,10 @@
       <CopyToPublishDirectory>Always</CopyToPublishDirectory>
     </None>
     <None Include="LICENSE">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+    </None>
+    <None Include="THIRD-PARTY-NOTICES.md">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <CopyToPublishDirectory>Always</CopyToPublishDirectory>
     </None>
@@ -86,6 +100,15 @@
   <!-- Smartmontools remains a separately distributed GPL executable. Do not embed it in single-file output. -->
   <ItemGroup>
     <Content Include="ThirdParty\Smartmontools\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+    </Content>
+  </ItemGroup>
+
+  <!-- PresentMon remains a separately distributed MIT executable used through stdout CSV. -->
+  <ItemGroup>
+    <Content Include="ThirdParty\PresentMon\**\*">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <CopyToPublishDirectory>Always</CopyToPublishDirectory>
       <ExcludeFromSingleFile>true</ExcludeFromSingleFile>

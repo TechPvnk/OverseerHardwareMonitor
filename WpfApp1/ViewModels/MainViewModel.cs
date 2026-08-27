@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.ObjectModel;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
@@ -44,6 +45,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
     private string _gpuMinPower = "N/A";
     private string _gpuMaxPower = "N/A";
     private string _gpuModel = "Unknown";
+    private string _gpuDriverVersion = "—";
     private string _gpuClock = "Unknown";
     private string _gpuRam = "Unknown";
     private string _gpuBus = "Unknown";
@@ -80,6 +82,8 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
     private bool _useFahrenheit;
     private bool _audioAlertsEnabled = true;
     private bool _logWmiQueries = false;
+    private DateTime _nextNetworkAdapterRefreshUtc = DateTime.MinValue;
+    private HardwareSnapshot? _latestSnapshot;
 
     public ObservableCollection<StorageDriveViewModel> StorageDrives { get; } = new();
     public ObservableCollection<DriveTemperatureViewModel> DriveTemperatures { get; } = new();
@@ -91,6 +95,17 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
     public ObservableCollection<string> RamModulesList { get; } = new();
     public ObservableCollection<string> GraphicsDevices { get; } = new();
     public ObservableCollection<string> AudioDevices { get; } = new();
+    public ObservableCollection<NetworkAdapterInfo> NetworkAdapters { get; } = new();
+    public NetworkAdapterInfo? PrimaryNetworkAdapter => NetworkAdapters.FirstOrDefault();
+    public bool HasActiveNetworkAdapter => PrimaryNetworkAdapter is not null;
+
+    public HardwareSnapshot? LatestSnapshot
+    {
+        get => _latestSnapshot;
+        private set => SetProperty(ref _latestSnapshot, value);
+    }
+
+    public bool UseFahrenheit => _useFahrenheit;
 
     public string CpuTemperature
     {
@@ -240,6 +255,7 @@ public sealed class DriveTemperatureViewModel : INotifyPropertyChanged
     public string GpuMinPower { get => _gpuMinPower; set => SetProperty(ref _gpuMinPower, value); }
     public string GpuMaxPower { get => _gpuMaxPower; set => SetProperty(ref _gpuMaxPower, value); }
     public string GpuModel { get => _gpuModel; set => SetProperty(ref _gpuModel, value); }
+    public string GpuDriverVersion { get => _gpuDriverVersion; set => SetProperty(ref _gpuDriverVersion, value); }
     public string GpuClock { get => _gpuClock; set => SetProperty(ref _gpuClock, value); }
     public string GpuRam { get => _gpuRam; set => SetProperty(ref _gpuRam, value); }
     public string GpuBus { get => _gpuBus; set => SetProperty(ref _gpuBus, value); }
@@ -279,6 +295,12 @@ public sealed class DriveTemperatureViewModel : INotifyPropertyChanged
             if (SetProperty(ref _logWmiQueries, value))
             {
                 Overseer.Models.WindowsSystemInfo.LogWmiQueries = value;
+                AppLog.Write(value ? "WMI query logging enabled." : "WMI query logging disabled.");
+
+                if (value)
+                {
+                    RefreshSystemInformation();
+                }
             }
         }
     }
@@ -324,6 +346,7 @@ public sealed class DriveTemperatureViewModel : INotifyPropertyChanged
             GpuModel = snapshot.GpuName;
             GpuTemperature = FormatTemperature(snapshot.GpuTemperatureValue);
             GpuTemperatureStatus = TemperatureStatusService.Evaluate(TemperatureCategory.Gpu, snapshot.GpuTemperatureValue);
+            GpuDriverVersion = snapshot.GpuDriverVersion;
             GpuClock = snapshot.GpuClock;
             GpuRam = snapshot.GpuRam;
             GpuBus = snapshot.GpuBus;
@@ -472,6 +495,8 @@ public sealed class DriveTemperatureViewModel : INotifyPropertyChanged
             AddHistoryPoint(GpuUsageHistory, snapshot.GpuUsageValue);
             AddHistoryPoint(RamUsageHistory, snapshot.RamUsageValue);
             _audioAlertService.ProcessSnapshot(snapshot, AudioAlertsEnabled);
+            RefreshNetworkAdapterInformationIfDue();
+            LatestSnapshot = snapshot;
             _hasSuccessfulSnapshot = true;
         }
         catch (Exception ex)
@@ -541,6 +566,7 @@ public sealed class DriveTemperatureViewModel : INotifyPropertyChanged
 
     public void ResetStatistics()
     {
+        AppLog.Write("Statistics reset requested.");
         _cpuMinTemperatureValue = null;
         _cpuMaxTemperatureValue = null;
         _cpuMinPowerValue = null;
@@ -578,13 +604,39 @@ public sealed class DriveTemperatureViewModel : INotifyPropertyChanged
             drive.History.Clear();
         }
 
+        StatisticsReset?.Invoke(this, EventArgs.Empty);
         RefreshData();
+        RefreshNetworkAdapterInformation();
     }
 
     public void RefreshSystemInformation()
     {
+        AppLog.Write("System information refresh requested.");
         _engine.RefreshSystemInformation();
+        RefreshNetworkAdapterInformation();
         RefreshData();
+    }
+
+    private void RefreshNetworkAdapterInformation()
+    {
+        IReadOnlyList<NetworkAdapterInfo> adapters = NetworkMonitorService.GetActiveAdapterInformation();
+        NetworkAdapters.Clear();
+        foreach (NetworkAdapterInfo adapter in adapters)
+        {
+            NetworkAdapters.Add(adapter);
+        }
+
+        _nextNetworkAdapterRefreshUtc = DateTime.UtcNow.AddSeconds(5);
+        OnPropertyChanged(nameof(PrimaryNetworkAdapter));
+        OnPropertyChanged(nameof(HasActiveNetworkAdapter));
+    }
+
+    private void RefreshNetworkAdapterInformationIfDue()
+    {
+        if (DateTime.UtcNow >= _nextNetworkAdapterRefreshUtc)
+        {
+            RefreshNetworkAdapterInformation();
+        }
     }
 
     public void SetTemperatureUnit(bool useFahrenheit)
@@ -595,8 +647,10 @@ public sealed class DriveTemperatureViewModel : INotifyPropertyChanged
         }
 
         _useFahrenheit = useFahrenheit;
+        OnPropertyChanged(nameof(UseFahrenheit));
         RefreshData();
     }
+    public event EventHandler? StatisticsReset;
     public event PropertyChangedEventHandler? PropertyChanged;
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
