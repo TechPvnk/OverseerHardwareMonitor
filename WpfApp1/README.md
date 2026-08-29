@@ -1,140 +1,93 @@
-Overseer - Hardware Monitor (WPF)
-=================================
+# Overseer Hardware Monitor
 
-Overseer is a Windows desktop hardware monitoring application built with WPF and .NET 8. It reads system sensors (CPU/GPU temps, usage, disk health, etc.) and provides export and tray features.
+Overseer is a Windows hardware-monitoring application built with WPF and .NET 8. It brings live telemetry, storage health, and essential system details into a compact TechPvnk interface, including a dockable game-friendly sidebar.
 
-Overseer is focused on delivering real-time system information through a clean, immersive cyberpunk interface.
-Rather than overwhelming users with endless tables of sensors, Overseer aims to make monitoring your PC both informative and enjoyable, but most of all, straightforward. The core emphasis is both usability and performance.
-I recondition and resell laptops. This app was born because I got tired of downloading and installing different apps each time I had to diagnose PCs. 
-It was a waste of time to install, run and then dive into the apps for different readings when I already knew what I wanted to see and also knew this could all be seen in a single view.
-I hope it's of help for you too. Yes this is heavily ai assisted coding and I'm so grateful I can do things like this now. I do know basic coding. It works.
-There's still much to do but I decided not to be a perfectionist and just iterate along the way!
+## Features
 
------
+- Live CPU, GPU, RAM, drive-temperature, and network monitoring with one-second history charts.
+- Temperature availability and Normal, High, and Critical status handling for CPU, GPU, and storage.
+- Disk Health with expandable SMART data for ATA and NVMe devices, backed by `smartctl` JSON when available.
+- System Info for CPU, RAM, graphics, audio, battery, displays, active network adapter details, and GPU driver version.
+- A compact Sidebar Mode with FPS, CPU, GPU, RAM, drive, and network modules.
+- Sidebar docking on the top, bottom, left, or right edge of any connected monitor; module visibility, transparency, click-through, selected drive, and position persist between launches.
+- Optional PresentMon-based FPS monitoring. It runs only while the FPS sidebar module is visible.
+- English and Spanish UI localization, with the selected language persisted.
+- Celsius/Fahrenheit switching, alert-sound controls, copy/export commands, screenshots, an application log, and minimize-to-tray support.
 
-✨ Features
-📊 Real-time CPU, GPU, RAM and disk monitoring
-🌡️ Temperature, utilization and power sensors
-✈️ Exportss
-📈 Interactive performance graphs
-😎 cyberpunk-inspired interface
-⚡ Lightweight and responsive
-🖥️ Built with WPF and .NET
-🔌 Extensible architecture for future plugins
-🌙 Customizable themes (planned)
+## Quick Start
 
------
+1. Run `Overseer.exe` as administrator when prompted. Some sensors and drive-health information require elevated access.
+2. Review live values in **Temps**, detailed storage data in **Disk Health**, and static machine information in **System Info**.
+3. Open **View > Sidebar Mode** for the compact overlay. Its `...` menu controls visible modules and range rows. The footer controls transparency and dock edge.
+4. Use **Tools > Reset Statistics** or `F5` to reset session minimum/maximum values and history charts. Use **Tools > Refresh System Information** after hardware, display, or network changes.
 
-🤝 Contributing
+See [docs/USER-GUIDE.md](docs/USER-GUIDE.md) for feature details and [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) for availability and diagnostics guidance.
 
-Contributions are welcome!
+## Data Providers and Availability
 
-Whether you'd like to:
+Overseer combines several providers rather than treating a missing sensor as a failure:
 
-fix bugs
-improve performance
-add hardware support
-improve the UI
-translate the application
-improve documentation
+- **LibreHardwareMonitorLib** supplies real-time telemetry where hardware and drivers expose it.
+- **Windows APIs and WMI** supply static system, display, battery, adapter, and driver data.
+- **Smartmontools / smartctl** is invoked as a separate executable for detailed SMART reports. LibreHardwareMonitor drive summaries remain available as a fallback.
+- **PresentMon** is invoked as a separate executable for optional FPS monitoring.
 
-feel free to open an Issue or submit a Pull Request. Keep changes small and include a brief description and a simple test if possible.
+Hardware vendors do not expose every field on every system. `N/A`, `Unknown`, or `—` indicate unavailable, unsupported, or still-initializing data; they never mean a measured zero. For example, integrated graphics can have incomplete thermal/power sensors, USB storage bridges may not forward SMART data, and devices without a battery are reported as not present.
 
-Please discuss major changes before beginning implementation.
------
+## Requirements
 
-🎨 Branding
+- Windows 10 or Windows 11
+- .NET 8 Desktop Runtime for framework-dependent builds
+- Windows x64 for the provided publish profile
+- Administrator rights recommended for the broadest hardware and SMART access
 
-The Overseer name, TechPvnk branding, logos, artwork, icons, mascot, and other visual assets are not covered by the MPL 2.0 unless explicitly stated.
+## Build
 
-These assets remain Copyright © 2026 Alfredo Capella. All rights reserved.
+Open the solution in Visual Studio, or run:
 
------
+```powershell
+dotnet build "Overseer.slnx"
+```
 
-❤️ Support the Project
+## Publish
 
-If you enjoy Overseer and would like to support its development, consider:
+Publish the x64 framework-dependent build from the project directory:
 
-⭐ Starring this repository
-🐛 Reporting bugs
-💡 Suggesting new features
-🤝 Contributing code
-☕ Supporting development via Ko-fi https://ko-fi.com/techpvnk
+```powershell
+dotnet publish Overseer.csproj -p:PublishProfile=win-x64
+```
 
-Every contribution—large or small—helps make Overseer better.
+Output:
 
-🌐 About
+```text
+bin\Release\net8.0-windows\win-x64\publish
+```
 
-Overseer is developed by TechPvnk, a project dedicated to giving technology a second life through restoration, repair, open-source software, and a passion for PC hardware.
-If you enjoy restoring, tinkering, Linux, hardware modding, and building unique tools, you're in the right place.
+The published folder includes the PawnIO helper, bundled Smartmontools files, PresentMon, third-party notices, and localized resources. Keep the publish folder intact; the external helper executables are loaded from it at runtime.
 
-https://www.youtube.com/@TechPvnk
-https://www.instagram.com/techpvnk_/
-https://www.tiktok.com/@techpvnk_
-https://x.com/TechPvnk 
+## Release Smoke Test
 
-Status
-------
-- Project targets: .NET 8 (net8.0-windows)
-- Uses the LibreHardwareMonitor NuGet package for sensor readings
+- Verify that Temps, Disk Health, and System Info load without errors.
+- Verify CPU/GPU/RAM readings are plausible and RAM used plus available approximately matches installed memory.
+- Confirm Disk Health either provides SMART details or communicates an explicit unavailable state.
+- Reset statistics and verify CPU, GPU, RAM, and each drive history/ranges reset.
+- Refresh System Info after changing a display or network connection.
+- Verify file exports, copy commands, language switching, About, Open Log, tray behavior, and Sidebar Mode.
+- In Sidebar Mode, verify module visibility, docking, click-through, transparency, drive selection, and FPS behavior when PresentMon is available.
 
-Requirements
-------------
-- Windows 10/11
-- .NET 8 runtime
+## Contributing
 
-Building
---------
-- Open the solution in Visual Studio and build.
-- Or from the repository root using the CLI:
-  - dotnet build "Overseer.slnx"
+Contributions are welcome. Please keep changes focused, include a concise description, and add or update verification where practical. Discuss major architecture or provider changes before starting.
 
-Notes
------
-- The project uses the LibreHardwareMonitor NuGet package. NuGet restore will download the package during build.
-- User-specific files (*.csproj.user) are ignored and should not be committed.
+## Licensing and Third-Party Components
 
-Release Package
----------------
-- Version: 1.0.0
-- Target: Windows x64 with the .NET 8 Desktop Runtime installed.
-- Publish from the project directory:
-  - dotnet publish Overseer.csproj -p:PublishProfile=win-x64
-- The publish output is written to:
-  - bin\Release\net8.0-windows\win-x64\publish
-- The published folder includes the PawnIO helper, the separately distributed Smartmontools executable and notices, the project license, third-party notices, and English/Spanish resources.
+Overseer source is licensed under MPL 2.0; see [LICENSE](LICENSE). Smartmontools is a separate GPL-2.0-or-later executable and PresentMon is a separate MIT-licensed executable. Overseer does not link either component's source code. See [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) and the bundled component documentation for details.
 
-Release Smoke Test
-------------------
-- Start Overseer and verify that the Temps, Disk Health, and System Info tabs load.
-- Verify CPU/GPU/RAM values are plausible and RAM used plus available approximately matches installed memory.
-- Open Disk Health and confirm SMART data either loads or shows an explicit unavailable state.
-- Use Tools > Reset Statistics and confirm CPU, GPU, RAM, and every drive chart/minimum/maximum reset.
-- Use Tools > Refresh System Information after changing a display connection.
-- Verify File export, Edit copy commands, English/Spanish switching, About, and Tools > Open Log.
+The Overseer name, TechPvnk branding, logos, artwork, icons, and other visual assets are not covered by the MPL 2.0 unless explicitly stated. Copyright © 2026 Alfredo Capella. All rights reserved.
 
-License
--------
-This project is licensed under the MPL 2.0 License. See LICENSE for details.
+## Support and Contact
 
-Author
-------
-Alfredo Capella (TechPvnk)
-Venezuelan in Panama
-
-Contact
--------
-techpvnk@proton.me
-
-V 0.1:
-- Some menu functions missing:
-	-Language (English for now)
-	-Help links (only about works)
-	-Open Log
-- Menu still uses windows so colors need fix
-
-Coming Soon:
-- All of that plus:
-	-Sidebar
-	-Themes
-	-An actual website I guess
+- Report bugs and ideas through the GitHub repository.
+- Support development: https://ko-fi.com/techpvnk
+- Email: techpvnk@proton.me
+- TechPvnk: https://www.youtube.com/@TechPvnk

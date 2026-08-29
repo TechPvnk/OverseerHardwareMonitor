@@ -13,6 +13,7 @@ bin/
 obj/
 out/
 artifacts/
+WpfApp1/dist/
 
 # Visual Studio publish
 publish/

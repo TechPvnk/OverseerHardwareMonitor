@@ -31,7 +31,7 @@ public sealed class FrameMonitorService : IDisposable
 {
     private const string SessionName = "OverseerFrameMonitor";
     private const double RollingWindowSeconds = 0.75d;
-    private const double CurrentFpsGraceSeconds = 2d;
+    private const double CurrentFpsGraceSeconds = 5d;
     private const int MinimumOnePercentLowSamples = 100;
     private const double HighFpsWindowMilliseconds = 100d;
     private const int MinimumHighFpsWindows = 10;
@@ -92,7 +92,7 @@ public sealed class FrameMonitorService : IDisposable
             }
             else if (_lastCurrentFps.HasValue && now - _lastCurrentFpsSeconds <= CurrentFpsGraceSeconds)
             {
-                // PresentMon can deliver frames in short bursts; retain only the last real sample during a brief gap.
+                // PresentMon can deliver frames in short bursts; retain the last real sample until the source has been quiet long enough to be unavailable.
                 currentFps = _lastCurrentFps;
             }
             double? averageFps = FpsFromAverageFrameTime(_sessionFrameTimes);
