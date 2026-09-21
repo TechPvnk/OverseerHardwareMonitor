@@ -7,7 +7,7 @@
   <data name="AppTitle" xml:space="preserve"><value>Overseer - Hardware Monitor</value></data>
   <data name="MenuFile" xml:space="preserve"><value>_File</value></data><data name="MenuEdit" xml:space="preserve"><value>_Edit</value></data><data name="MenuTools" xml:space="preserve"><value>_Tools</value></data><data name="MenuView" xml:space="preserve"><value>_View</value></data><data name="MenuLanguage" xml:space="preserve"><value>_Language</value></data><data name="MenuHelp" xml:space="preserve"><value>_Help</value></data>
   <data name="CommandExportData" xml:space="preserve"><value>Export data</value></data><data name="CommandExportScreenshot" xml:space="preserve"><value>Export screenshot</value></data><data name="CommandExit" xml:space="preserve"><value>Exit</value></data><data name="CommandCopyCurrentTab" xml:space="preserve"><value>Copy current tab</value></data><data name="CommandCopyAllTabs" xml:space="preserve"><value>Copy all tabs</value></data><data name="CommandResetStatistics" xml:space="preserve"><value>Reset Statistics</value></data><data name="CommandOpenLog" xml:space="preserve"><value>Open Log</value></data><data name="CommandAlertSound" xml:space="preserve"><value>Alert sound</value></data><data name="CommandAlwaysOnTop" xml:space="preserve"><value>Always On Top</value></data><data name="CommandMinimizeToTray" xml:space="preserve"><value>Minimize to tray</value></data>
-  <data name="MenuTemperature" xml:space="preserve"><value>Temperature</value></data><data name="LanguageEnglish" xml:space="preserve"><value>English</value></data><data name="LanguageSpanish" xml:space="preserve"><value>Spanish</value></data><data name="MenuDebug" xml:space="preserve"><value>Debug</value></data><data name="CommandLogWmiQueries" xml:space="preserve"><value>Log WMI queries</value></data>
+  <data name="MenuTemperature" xml:space="preserve"><value>Temperature</value></data><data name="LanguageEnglish" xml:space="preserve"><value>English</value></data><data name="LanguageSpanish" xml:space="preserve"><value>Spanish</value></data><data name="MenuDebug" xml:space="preserve"><value>Debug</value></data><data name="CommandLogWmiQueries" xml:space="preserve"><value>Log WMI queries</value></data><data name="CommandLogIntelGpuDiagnostics" xml:space="preserve"><value>Log Intel GPU diagnostics</value></data>
   <data name="TemperatureCelsius" xml:space="preserve"><value>Celsius</value></data><data name="TemperatureFahrenheit" xml:space="preserve"><value>Fahrenheit</value></data>
   <data name="HelpDocumentation" xml:space="preserve"><value>Documentation</value></data><data name="HelpReadings" xml:space="preserve"><value>What do these readings mean?</value></data><data name="HelpCheckUpdates" xml:space="preserve"><value>Check for Updates</value></data><data name="HelpAbout" xml:space="preserve"><value>About Overseer...</value></data>
   <data name="BrandSubtitle" xml:space="preserve"><value>HARDWARE TELEMETRY  //  LIVE SENSOR STATUS</value></data><data name="TabTemps" xml:space="preserve"><value>Temps</value></data><data name="TabDiskHealth" xml:space="preserve"><value>Disk Health</value></data><data name="TabSystemInfo" xml:space="preserve"><value>System Info</value></data>
@@ -86,4 +86,45 @@
   <data name="FormatNetworkIpv4" xml:space="preserve"><value>IPv4: {0}</value></data>
   <data name="FormatNetworkIpv6" xml:space="preserve"><value>IPv6: {0}</value></data>
   <data name="FormatNetworkMac" xml:space="preserve"><value>MAC: {0}</value></data>
+  <data name="TestLabCpuBenchmark" xml:space="preserve"><value>CPU BENCHMARK</value></data>
+  <data name="TestLabCpuStress" xml:space="preserve"><value>CPU STRESS TEST</value></data>
+  <data name="TestLabSingleThread" xml:space="preserve"><value>Single Thread</value></data>
+  <data name="TestLabMultiThread" xml:space="preserve"><value>Multi Thread</value></data>
+  <data name="TestLabMultiThreadRatio" xml:space="preserve"><value>Multi Thread Ratio</value></data>
+  <data name="TestLabBenchmarkCpu" xml:space="preserve"><value>BENCHMARK CPU</value></data>
+  <data name="TestLabStartStress" xml:space="preserve"><value>START CPU STRESS TEST</value></data>
+  <data name="TestLabStopTest" xml:space="preserve"><value>STOP TEST</value></data>
+  <data name="TestLabThreads" xml:space="preserve"><value>Threads</value></data>
+  <data name="TestLabAllThreads" xml:space="preserve"><value>All Threads</value></data>
+  <data name="TestLabDuration" xml:space="preserve"><value>Duration</value></data>
+  <data name="TestLabUntilStopped" xml:space="preserve"><value>Until stopped</value></data>
+  <data name="TestLabOneMinute" xml:space="preserve"><value>1 minute</value></data>
+  <data name="TestLabFiveMinutes" xml:space="preserve"><value>5 minutes</value></data>
+  <data name="TestLabTenMinutes" xml:space="preserve"><value>10 minutes</value></data>
+  <data name="TestLabThirtyMinutes" xml:space="preserve"><value>30 minutes</value></data>
+  <data name="TestLabThermalSafety" xml:space="preserve"><value>Stop automatically at critical temperature</value></data>
+  <data name="TestLabNoTemperatureSensor" xml:space="preserve"><value>Thermal safety stop unavailable: no CPU temperature sensor.</value></data>
+  <data name="TestLabSafetyNote" xml:space="preserve"><value>Stress testing increases temperature, power consumption and fan speed.</value></data>
+  <data name="TestLabBatteryWarning" xml:space="preserve"><value>Running a CPU stress test on battery may cause rapid battery drain and power-limited performance.</value></data>
+  <data name="TestLabPreparing" xml:space="preserve"><value>Preparing</value></data>
+  <data name="TestLabWarmingUp" xml:space="preserve"><value>Warming up</value></data>
+  <data name="TestLabRunning" xml:space="preserve"><value>Running</value></data>
+  <data name="TestLabCompleted" xml:space="preserve"><value>Completed</value></data>
+  <data name="TestLabCancelled" xml:space="preserve"><value>Cancelled</value></data>
+  <data name="TestLabStopped" xml:space="preserve"><value>Stopped by user</value></data>
+  <data name="TestLabStoppedCritical" xml:space="preserve"><value>Stopped — Critical Temperature</value></data>
+  <data name="TestLabError" xml:space="preserve"><value>Error</value></data>
+  <data name="TestLabAverage" xml:space="preserve"><value>Average</value></data>
+  <data name="TestLabPeakTemperature" xml:space="preserve"><value>Peak Temperature</value></data>
+  <data name="TestLabPeakPower" xml:space="preserve"><value>Peak Power</value></data>
+  <data name="TestLabLastBenchmark" xml:space="preserve"><value>LAST CPU BENCHMARK</value></data>
+  <data name="TestLabLastStress" xml:space="preserve"><value>LAST CPU STRESS TEST</value></data>
+  <data name="TestLabResult" xml:space="preserve"><value>Result</value></data>
+  <data name="TestLabStressWarningTitle" xml:space="preserve"><value>CPU Stress Test</value></data>
+  <data name="TestLabStressWarning" xml:space="preserve"><value>CPU stress testing creates sustained processor load. Save important work and make sure the system has adequate cooling.</value></data>
+  <data name="TestLabDontShowAgain" xml:space="preserve"><value>Don't show this warning again</value></data>
+  <data name="TestLabStartTest" xml:space="preserve"><value>Start Test</value></data>
+  <data name="TestLabExitWarning" xml:space="preserve"><value>A CPU test is currently running. Stop the test and exit Overseer?</value></data>
+  <data name="TrayStopCpuStress" xml:space="preserve"><value>Stop CPU Stress Test</value></data>
+  <data name="TestLabCpuStressRunning" xml:space="preserve"><value>CPU STRESS RUNNING</value></data>
 </root>

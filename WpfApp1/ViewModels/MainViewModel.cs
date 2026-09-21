@@ -96,6 +96,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
     public ObservableCollection<string> GraphicsDevices { get; } = new();
     public ObservableCollection<string> AudioDevices { get; } = new();
     public ObservableCollection<NetworkAdapterInfo> NetworkAdapters { get; } = new();
+    public TestLabViewModel TestLab { get; } = new();
     public NetworkAdapterInfo? PrimaryNetworkAdapter => NetworkAdapters.FirstOrDefault();
     public bool HasActiveNetworkAdapter => PrimaryNetworkAdapter is not null;
 
@@ -497,6 +498,7 @@ public sealed class DriveTemperatureViewModel : INotifyPropertyChanged
             _audioAlertService.ProcessSnapshot(snapshot, AudioAlertsEnabled);
             RefreshNetworkAdapterInformationIfDue();
             LatestSnapshot = snapshot;
+            TestLab.ObserveTelemetry(snapshot, CpuTemperatureStatus, _useFahrenheit);
             _hasSuccessfulSnapshot = true;
         }
         catch (Exception ex)
@@ -509,6 +511,11 @@ public sealed class DriveTemperatureViewModel : INotifyPropertyChanged
                 ApplyUnavailableHardwareState();
             }
         }
+    }
+
+    public void LogIntelGpuDiagnostics()
+    {
+        _engine.WriteIntelGpuDiagnostics();
     }
 
     private void RequestSmartctlRefresh()
@@ -772,6 +779,7 @@ public sealed class DriveTemperatureViewModel : INotifyPropertyChanged
         if (_disposed) return;
 
         _timer.Stop();
+        TestLab.Dispose();
         _engine.Dispose();
         _disposed = true;
     }

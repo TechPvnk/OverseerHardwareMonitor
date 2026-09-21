@@ -6,6 +6,7 @@ using System.Linq;
 using LibreHardwareMonitor.Hardware;
 using System.Management;
 using System.IO;
+using System.Reflection;
 using Overseer.Helpers;
 using Overseer.Services;
 
@@ -559,6 +560,151 @@ public sealed class HardwareMonitorEngine : IDisposable
         }
 
         Debug.WriteLine("============================================================================\n");
+    }
+
+    public void WriteIntelGpuDiagnostics()
+    {
+        TryRead(() =>
+        {
+            Initialize();
+            UpdateHardware();
+
+            AppLog.Write("=================== INTEL GPU TELEMETRY DIAGNOSTICS ===================");
+            LogIntelGraphicsRuntime();
+
+            IHardware[] intelGpus = _computer.Hardware
+                .Where(hardware => hardware.HardwareType == HardwareType.GpuIntel)
+                .ToArray();
+
+            if (intelGpus.Length == 0)
+            {
+                AppLog.Write("No LibreHardwareMonitor Intel GPU hardware node was found.");
+            }
+
+            foreach (IHardware gpu in intelGpus)
+            {
+                AppLog.Write($"GPU: '{gpu.Name}' | Type: {gpu.HardwareType} | Runtime type: {gpu.GetType().FullName}");
+                LogIntelGpuProviderState(gpu);
+
+                ISensor[] sensors = GetSensors(gpu).ToArray();
+                if (sensors.Length == 0)
+                {
+                    AppLog.Write("  No GPU sensors were exposed by LibreHardwareMonitor.");
+                }
+
+                foreach (ISensor sensor in sensors)
+                {
+                    AppLog.Write($"  Sensor: '{sensor.Name}' | Type: {sensor.SensorType} | Value: {sensor.Value?.ToString(CultureInfo.InvariantCulture) ?? "null"}");
+                }
+            }
+
+            LogIntelVideoControllerDetails();
+            AppLog.Write("===========================================================================");
+        }, "Unable to write Intel GPU telemetry diagnostics.");
+    }
+
+    private static void LogIntelGraphicsRuntime()
+    {
+        string systemDirectory = Environment.SystemDirectory;
+        string controlLibPath = Path.Combine(systemDirectory, "ControlLib.dll");
+        string levelZeroPath = Path.Combine(systemDirectory, "ze_loader.dll");
+
+        AppLog.Write($"Intel ControlLib.dll: {DescribeRuntimeLibrary(controlLibPath)}");
+        AppLog.Write($"Intel Level Zero loader: {DescribeRuntimeLibrary(levelZeroPath)}");
+
+        Type? intelGclType = typeof(Computer).Assembly.GetType("LibreHardwareMonitor.Interop.IntelGcl");
+        if (intelGclType is null)
+        {
+            AppLog.Write("LibreHardwareMonitor Intel GCL provider type was not found.");
+            return;
+        }
+
+        AppLog.Write($"LibreHardwareMonitor Intel GCL available: {ReadStaticBoolean(intelGclType, "IsAvailable")}");
+        AppLog.Write($"LibreHardwareMonitor Intel GCL initialized: {ReadStaticBoolean(intelGclType, "IsInitialized")}");
+    }
+
+    private static string DescribeRuntimeLibrary(string path)
+    {
+        if (!File.Exists(path))
+        {
+            return "not found";
+        }
+
+        try
+        {
+            FileVersionInfo version = FileVersionInfo.GetVersionInfo(path);
+            return string.IsNullOrWhiteSpace(version.FileVersion)
+                ? "found (version unavailable)"
+                : $"found ({version.FileVersion})";
+        }
+        catch
+        {
+            return "found (version unavailable)";
+        }
+    }
+
+    private static string ReadStaticBoolean(Type type, string propertyName)
+    {
+        try
+        {
+            PropertyInfo? property = type.GetProperty(propertyName, BindingFlags.Public | BindingFlags.Static);
+            return property?.GetValue(null) is bool value ? value.ToString() : "unavailable";
+        }
+        catch (Exception ex)
+        {
+            return $"unavailable ({ex.GetType().Name})";
+        }
+    }
+
+    private static void LogIntelGpuProviderState(IHardware gpu)
+    {
+        try
+        {
+            Type type = gpu.GetType();
+            FieldInfo? gclHandle = type.GetField("_igclHandle", BindingFlags.Instance | BindingFlags.NonPublic);
+            FieldInfo? temperatureSensor = type.GetField("_gtCoresTemperature", BindingFlags.Instance | BindingFlags.NonPublic);
+
+            if (gclHandle is not null)
+            {
+                AppLog.Write($"  IGCL adapter handle: {(gclHandle.GetValue(gpu) is null ? "not available" : "available")}");
+            }
+
+            if (temperatureSensor is not null)
+            {
+                AppLog.Write($"  IGCL GPU Core temperature sensor constructed: {(temperatureSensor.GetValue(gpu) is null ? "no" : "yes")}");
+            }
+        }
+        catch (Exception ex)
+        {
+            AppLog.Write("  Unable to inspect the Intel GPU provider state.", ex);
+        }
+    }
+
+    private static void LogIntelVideoControllerDetails()
+    {
+        try
+        {
+            using var searcher = new ManagementObjectSearcher(
+                "root\\CIMV2",
+                "SELECT Name, DriverVersion, PNPDeviceID FROM Win32_VideoController");
+
+            foreach (ManagementObject controller in searcher.Get())
+            {
+                string name = Convert.ToString(controller["Name"], CultureInfo.InvariantCulture) ?? "Unknown";
+                if (!name.Contains("Intel", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                string driverVersion = Convert.ToString(controller["DriverVersion"], CultureInfo.InvariantCulture) ?? "Unknown";
+                string deviceId = Convert.ToString(controller["PNPDeviceID"], CultureInfo.InvariantCulture) ?? "Unknown";
+                AppLog.Write($"WMI Intel adapter: '{name}' | Driver: {driverVersion} | Device: {deviceId}");
+            }
+        }
+        catch (Exception ex)
+        {
+            AppLog.Write("Unable to read Intel video-controller diagnostics from WMI.", ex);
+        }
     }
 
     private static float? GetWmiCpuTemperature()

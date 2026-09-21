@@ -2,6 +2,8 @@ using System;
 using System.IO;
 using System.Text;
 using System.Diagnostics;
+using System.ComponentModel;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -25,6 +27,7 @@ namespace Overseer
         private System.Drawing.Icon? _trayIconGraphic;
         private Forms.ToolStripMenuItem? _trayOpenMenuItem;
         private Forms.ToolStripMenuItem? _trayExitMenuItem;
+        private Forms.ToolStripMenuItem? _trayStopStressMenuItem;
         private readonly SidebarSettingsService _sidebarSettingsService = SidebarSettingsService.Instance;
         private SidebarWindow? _sidebarWindow;
         private bool _exitRequested;
@@ -36,6 +39,7 @@ namespace Overseer
             // Instantiate the ViewModel and bind it to the Window's DataContext
             _viewModel = new MainViewModel();
             DataContext = _viewModel;
+            _viewModel.TestLab.PropertyChanged += TestLab_PropertyChanged;
             SidebarClickThroughMenuItem.IsChecked = _sidebarSettingsService.Settings.IsClickThrough;
             InitializeTrayIcon();
             LocalizationService.Instance.PropertyChanged += LocalizationChanged;
@@ -55,6 +59,15 @@ namespace Overseer
 
         protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
         {
+            if (!_exitRequested && _viewModel.TestLab.IsTestRunning)
+            {
+                e.Cancel = true;
+                if (MessageBox.Show(L("TestLabExitWarning"), L("TestLabStressWarningTitle"), MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
+                {
+                    _ = StopTestAndExitAsync();
+                }
+                return;
+            }
             if (!_exitRequested && MinimizeToTrayMenuItem.IsChecked)
             {
                 e.Cancel = true;
@@ -69,6 +82,7 @@ namespace Overseer
         {
             Loaded -= MainWindow_Loaded;
             LocalizationService.Instance.PropertyChanged -= LocalizationChanged;
+            _viewModel.TestLab.PropertyChanged -= TestLab_PropertyChanged;
             if (_sidebarWindow is not null)
             {
                 _sidebarWindow.Closed -= SidebarWindow_Closed;
@@ -100,9 +114,12 @@ namespace Overseer
             Forms.ContextMenuStrip menu = new();
             _trayOpenMenuItem = new Forms.ToolStripMenuItem();
             _trayOpenMenuItem.Click += (_, _) => RestoreFromTray();
+            _trayStopStressMenuItem = new Forms.ToolStripMenuItem { Visible = false };
+            _trayStopStressMenuItem.Click += async (_, _) => await _viewModel.TestLab.StopAsync();
             _trayExitMenuItem = new Forms.ToolStripMenuItem();
             _trayExitMenuItem.Click += (_, _) => ExitApplication();
             menu.Items.Add(_trayOpenMenuItem);
+            menu.Items.Add(_trayStopStressMenuItem);
             menu.Items.Add(_trayExitMenuItem);
 
             _trayIcon = new Forms.NotifyIcon
@@ -261,6 +278,11 @@ namespace Overseer
 
         private void ExitApplication()
         {
+            if (_viewModel.TestLab.IsTestRunning)
+            {
+                Close();
+                return;
+            }
             _exitRequested = true;
             if (_trayIcon is not null)
             {
@@ -268,6 +290,43 @@ namespace Overseer
             }
 
             Close();
+        }
+
+        private async Task StopTestAndExitAsync()
+        {
+            await _viewModel.TestLab.StopAsync();
+            _exitRequested = true;
+            if (_trayIcon is not null) _trayIcon.Visible = false;
+            Close();
+        }
+
+        private async void StartBenchmarkButton_Click(object sender, RoutedEventArgs e)
+        {
+            await _viewModel.TestLab.StartBenchmarkAsync();
+        }
+
+        private async void StartStressButton_Click(object sender, RoutedEventArgs e)
+        {
+            TestLabViewModel testLab = _viewModel.TestLab;
+            if (testLab.ShouldShowStressWarning)
+            {
+                string message = L("TestLabStressWarning") + (testLab.IsBatteryPower ? Environment.NewLine + Environment.NewLine + L("TestLabBatteryWarning") : string.Empty);
+                if (MessageBox.Show(message, L("TestLabStressWarningTitle"), MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
+            }
+            await testLab.StartStressAsync();
+        }
+
+        private async void StopCpuTestButton_Click(object sender, RoutedEventArgs e)
+        {
+            await _viewModel.TestLab.StopAsync();
+        }
+
+        private void TestLab_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName is nameof(TestLabViewModel.IsStressRunning) or nameof(TestLabViewModel.PersistentStressText) or nameof(TestLabViewModel.IsTestRunning))
+            {
+                Dispatcher.BeginInvoke(UpdateTestLabChrome);
+            }
         }
 
         private void AboutMenuItem_Click(object sender, RoutedEventArgs e)
@@ -579,6 +638,14 @@ namespace Overseer
             {
                 _trayExitMenuItem.Text = L("CommandExit");
             }
+            UpdateTestLabChrome();
+        }
+
+        private void UpdateTestLabChrome()
+        {
+            if (_trayStopStressMenuItem is null) return;
+            _trayStopStressMenuItem.Text = L("TrayStopCpuStress");
+            _trayStopStressMenuItem.Visible = _viewModel.TestLab.IsStressRunning;
         }
 
         private static string L(string key) => LocalizationService.Instance[key];
@@ -759,6 +826,12 @@ namespace Overseer
             AppLog.Open();
         }
 
+        private void LogIntelGpuDiagnosticsMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            _viewModel.LogIntelGpuDiagnostics();
+            AppLog.Open();
+        }
+
         private void AlertSoundMenuItem_Click(object sender, RoutedEventArgs e)
         {
             if (sender is MenuItem menuItem)
@@ -875,5 +948,6 @@ namespace Overseer
                 UseShellExecute = true
             });
         }
+
     }
 }

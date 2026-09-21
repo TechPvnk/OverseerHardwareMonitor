@@ -1,5 +1,5 @@
 #define MyAppName "Overseer Hardware Monitor"
-#define MyAppVersion "1.0.0"
+#define MyAppVersion "1.1.0"
 #define MyAppPublisher "TechPvnk"
 #define MyAppURL "https://github.com/TechPvnk/OverseerHardwareMonitor"
 #define MyAppExeName "Overseer.exe"
