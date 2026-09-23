@@ -23,7 +23,7 @@ Then compile `installer\Overseer.iss` with the Inno Setup Compiler (`ISCC.exe`).
 
 Some installations instead use `C:\Program Files (x86)\Inno Setup 6\ISCC.exe`.
 
-The installer is written to `dist\Overseer-Setup-1.0.0-x64.exe`.
+The installer is written to `dist\Overseer-Setup-<version>-x64.exe`.
 
 ## Installer Behavior
 
@@ -33,4 +33,5 @@ The installer is written to `dist\Overseer-Setup-1.0.0-x64.exe`.
 - Installs the bundled PawnIO helper silently when the PawnIO service is not already installed; this enables the widest available CPU sensor coverage on first launch.
 - Preserves the required external Smartmontools and PresentMon executables as files beside the application.
 - Runs with administrator privileges, matching Overseer's hardware-access requirements.
+- Detects and upgrades a previous Overseer installation in place while preserving its folder, language, shortcuts, settings, and local data. It closes a running Overseer process before replacing application files and prevents downgrades over a newer installed version.
 - Is not code-signed by this build process. Sign the generated setup executable with a trusted code-signing certificate before public distribution to avoid Windows SmartScreen reputation warnings.
