@@ -75,8 +75,24 @@ public sealed class TestLabViewModel : INotifyPropertyChanged, IDisposable
     public string SingleScore { get => _singleScore; private set => SetProperty(ref _singleScore, value); }
     public string MultiScore { get => _multiScore; private set => SetProperty(ref _multiScore, value); }
     public string Ratio { get => _ratio; private set => SetProperty(ref _ratio, value); }
-    public string LastBenchmarkSummary { get => _lastBenchmarkSummary; private set => SetProperty(ref _lastBenchmarkSummary, value); }
-    public string LastStressSummary { get => _lastStressSummary; private set => SetProperty(ref _lastStressSummary, value); }
+    public string LastBenchmarkSummary
+    {
+        get => _lastBenchmarkSummary;
+        private set
+        {
+            if (SetProperty(ref _lastBenchmarkSummary, value)) OnPropertyChanged(nameof(CopyableResultsText));
+        }
+    }
+    public string LastStressSummary
+    {
+        get => _lastStressSummary;
+        private set
+        {
+            if (SetProperty(ref _lastStressSummary, value)) OnPropertyChanged(nameof(CopyableResultsText));
+        }
+    }
+    public string CopyableResultsText =>
+        $"{CpuModel}\n{CpuCoresThreads}\n\n{L("TestLabLastBenchmark")}\n{DisplayResult(LastBenchmarkSummary)}\n\n{L("TestLabLastStress")}\n{DisplayResult(LastStressSummary)}";
     public bool IsBatteryPower { get; private set; }
     public bool ShouldShowStressWarning => !TestLabSettingsService.Instance.SuppressStressWarning;
     public bool SuppressStressWarningPreference
@@ -90,6 +106,7 @@ public sealed class TestLabViewModel : INotifyPropertyChanged, IDisposable
     {
         _useFahrenheit = useFahrenheit;
         CpuModel = snapshot.CpuName; CpuCoresThreads = snapshot.CpuCoresThreads;
+        OnPropertyChanged(nameof(CopyableResultsText));
         IsBatteryPower = snapshot.BatteryInfo.Contains("AC: Offline", StringComparison.OrdinalIgnoreCase);
         bool temperatureAvailable = TemperatureStatusService.IsAvailableTemperature(snapshot.CpuTemperatureValue);
         ThermalSafetyAvailable = temperatureAvailable;
@@ -154,6 +171,7 @@ public sealed class TestLabViewModel : INotifyPropertyChanged, IDisposable
     private string FormatTemperature(float? value) => !TemperatureStatusService.IsAvailableTemperature(value) ? "—" : $"{(_useFahrenheit ? value!.Value * 9d / 5d + 32d : value!.Value):0.#} {(_useFahrenheit ? "F" : "C")}";
     private static string FormatValue(float? value, string unit) => value.HasValue && !float.IsNaN(value.Value) && !float.IsInfinity(value.Value) ? $"{value.Value:0.#} {unit}" : "—";
     private string FormatDouble(double? value, string unit, bool temperature = false) => !value.HasValue || double.IsNaN(value.Value) ? "—" : temperature ? FormatTemperature((float)value.Value) : $"{value.Value:0.#} {unit}";
+    private static string DisplayResult(string value) => string.IsNullOrWhiteSpace(value) ? "—" : value;
     private void RebuildOptions()
     {
         int oldThreads = SelectedThreadOption?.Count ?? Environment.ProcessorCount; TimeSpan? oldDuration = SelectedDurationOption?.Duration ?? TimeSpan.FromMinutes(5);

@@ -995,7 +995,7 @@
                                 <TextBlock Text="{services:Loc TestLabSafetyNote}" Style="{StaticResource MetricTextStyle}" Foreground="{StaticResource MutedTextBrush}" Margin="0,9,0,0"/>
                             </StackPanel>
                         </Border>
-                        <Border Style="{StaticResource ContentCardStyle}" Background="{StaticResource CardInsetBrush}"><StackPanel><TextBlock Text="{services:Loc TestLabLastBenchmark}" Style="{StaticResource SectionLabelTextStyle}"/><TextBlock Text="{Binding LastBenchmarkSummary}" TextWrapping="Wrap" Style="{StaticResource MetricTextStyle}" Margin="0,5,0,10"/><TextBlock Text="{services:Loc TestLabLastStress}" Style="{StaticResource SectionLabelTextStyle}"/><TextBlock Text="{Binding LastStressSummary}" TextWrapping="Wrap" Style="{StaticResource MetricTextStyle}" Margin="0,5,0,0"/></StackPanel></Border>
+                        <Border Style="{StaticResource ContentCardStyle}" Background="{StaticResource CardInsetBrush}"><StackPanel><TextBlock Text="TESTLAB RESULTS" Style="{StaticResource SectionLabelTextStyle}"/><TextBox Text="{Binding CopyableResultsText}" IsReadOnly="True" TextWrapping="Wrap" AcceptsReturn="True" Background="Transparent" Foreground="{StaticResource TextBrush}" BorderThickness="0" Padding="0" FontSize="12" Margin="0,5,0,0"/></StackPanel></Border>
                             </StackPanel>
                         </Expander>
                     </StackPanel>

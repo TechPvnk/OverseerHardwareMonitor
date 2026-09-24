@@ -426,6 +426,8 @@ namespace Overseer
             AppendDiskHealthSection(builder);
             builder.AppendLine();
             AppendSystemInfoSection(builder);
+            builder.AppendLine();
+            AppendTestLabSection(builder);
             return builder.ToString();
         }
 
@@ -453,8 +455,23 @@ namespace Overseer
                 "Temps" => BuildTempsText(),
                 "DiskHealth" => BuildDiskHealthText(),
                 "SystemInfo" => BuildSystemInfoText(),
+                "TestLab" => BuildTestLabText(),
                 _ => BuildTextExport()
             };
+        }
+
+        private string BuildTestLabText()
+        {
+            StringBuilder builder = new();
+            AppendExportHeader(builder);
+            AppendTestLabSection(builder);
+            return builder.ToString();
+        }
+
+        private void AppendTestLabSection(StringBuilder builder)
+        {
+            builder.AppendLine("TestLab:");
+            builder.AppendLine(_viewModel.TestLab.CopyableResultsText);
         }
 
         private void EnglishMenuItem_Click(object sender, RoutedEventArgs e)
@@ -767,6 +784,16 @@ namespace Overseer
                 AddCsvRow(builder, section, "IPv6", adapter.Ipv6Address);
                 AddCsvRow(builder, section, "MAC", adapter.MacAddress);
             }
+
+            TestLabViewModel testLab = _viewModel.TestLab;
+            AddCsvRow(builder, "TestLab", "CPU", testLab.CpuModel);
+            AddCsvRow(builder, "TestLab", "Cores / Threads", testLab.CpuCoresThreads);
+            AddCsvRow(builder, "TestLab CPU Benchmark", "Version", testLab.BenchmarkVersion);
+            AddCsvRow(builder, "TestLab CPU Benchmark", "Single Thread Score", testLab.SingleScore);
+            AddCsvRow(builder, "TestLab CPU Benchmark", "Multi Thread Score", testLab.MultiScore);
+            AddCsvRow(builder, "TestLab CPU Benchmark", "Multi Thread Ratio", testLab.Ratio);
+            AddCsvRow(builder, "TestLab CPU Benchmark", "Last Result", testLab.LastBenchmarkSummary);
+            AddCsvRow(builder, "TestLab CPU Stress Test", "Last Result", testLab.LastStressSummary);
             return builder.ToString();
         }
 
