@@ -1,0 +1,383 @@
+<UserControl x:Class="Overseer.Views.TestLabView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:services="clr-namespace:Overseer.Services"
+             xmlns:views="clr-namespace:Overseer.Views"
+             UseLayoutRounding="True">
+    <UserControl.Resources>
+        <SolidColorBrush x:Key="TestLabAccent" Color="#F54F36"/>
+        <BooleanToVisibilityConverter x:Key="ShowWhenTrue"/>
+
+        <Style x:Key="SegmentTabs" TargetType="TabControl">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabControl">
+                        <DockPanel KeyboardNavigation.TabNavigation="Local">
+                            <Border DockPanel.Dock="Top" BorderBrush="{StaticResource BorderBrush}"
+                                    BorderThickness="0,0,0,1" Margin="0,0,0,8" Padding="0,0,0,5">
+                                <TabPanel IsItemsHost="True" KeyboardNavigation.TabIndex="0"/>
+                            </Border>
+                            <ContentPresenter x:Name="PART_SelectedContentHost" ContentSource="SelectedContent"/>
+                        </DockPanel>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="CategoryTab" TargetType="TabItem">
+            <Setter Property="FontFamily" Value="{StaticResource DisplayFont}"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="{StaticResource MutedTextBrush}"/>
+            <Setter Property="Padding" Value="14,5"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabItem">
+                        <Border x:Name="Segment" Background="{StaticResource CardInsetBrush}"
+                                BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                                CornerRadius="2" Margin="0,0,4,0" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter ContentSource="Header" RecognizesAccessKey="True"
+                                              HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Segment" Property="Background" Value="{StaticResource PanelBrush}"/>
+                                <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Segment" Property="Background" Value="{StaticResource PanelBrush}"/>
+                                <Setter TargetName="Segment" Property="BorderBrush" Value="{StaticResource TestLabAccent}"/>
+                                <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="Segment" Property="BorderBrush" Value="{StaticResource TestLabAccent}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="ToolTab" TargetType="TabItem" BasedOn="{StaticResource CategoryTab}">
+            <Setter Property="Padding" Value="12,3"/>
+            <Setter Property="FontSize" Value="12"/>
+        </Style>
+
+        <Style x:Key="SecondaryAction" TargetType="Button">
+            <Setter Property="FontFamily" Value="{StaticResource DisplayFont}"/>
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="Background" Value="{StaticResource CardBrush}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="10,4"/>
+            <Setter Property="MinHeight" Value="26"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Surface" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="2" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" RecognizesAccessKey="True"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Surface" Property="Background" Value="{StaticResource PanelBrush}"/>
+                                <Setter TargetName="Surface" Property="BorderBrush" Value="{StaticResource TestLabAccent}"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Surface" Property="Background" Value="{StaticResource AccentPressedBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="Surface" Property="BorderBrush" Value="{StaticResource TestLabAccent}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Surface" Property="Opacity" Value="0.45"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="PrimaryAction" TargetType="Button" BasedOn="{StaticResource SecondaryAction}">
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Background" Value="#321A19"/>
+            <Setter Property="BorderBrush" Value="{StaticResource TestLabAccent}"/>
+        </Style>
+        <Style x:Key="LabCard" TargetType="Border" BasedOn="{StaticResource ContentCardStyle}">
+            <Setter Property="Background" Value="{StaticResource CardInsetBrush}"/>
+            <Setter Property="Padding" Value="12,9"/>
+            <Setter Property="Margin" Value="0,0,0,8"/>
+        </Style>
+        <Style x:Key="ToolTitle" TargetType="TextBlock" BasedOn="{StaticResource SectionLabelTextStyle}">
+            <Setter Property="Foreground" Value="{StaticResource TestLabAccent}"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+        </Style>
+        <Style x:Key="ValueText" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="{StaticResource DisplayFont}"/>
+            <Setter Property="FontSize" Value="22"/>
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+        </Style>
+        <Style x:Key="WarningText" TargetType="TextBlock" BasedOn="{StaticResource MetricTextStyle}">
+            <Setter Property="Foreground" Value="{StaticResource WarningBrush}"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="Margin" Value="0,5,0,0"/>
+        </Style>
+        <Style x:Key="SelectableValue" TargetType="TextBox">
+            <Setter Property="IsReadOnly" Value="True"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="SelectionBrush" Value="{StaticResource AccentPressedBrush}"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="FontSize" Value="13"/>
+        </Style>
+        <Style x:Key="ScoreValue" TargetType="TextBox" BasedOn="{StaticResource SelectableValue}">
+            <Setter Property="FontFamily" Value="{StaticResource DisplayFont}"/>
+            <Setter Property="FontSize" Value="22"/>
+            <Setter Property="Foreground" Value="{StaticResource TestLabAccent}"/>
+        </Style>
+
+        <Style x:Key="ResultRows" TargetType="ItemsControl">
+            <Setter Property="ItemsPanel">
+                <Setter.Value><ItemsPanelTemplate><UniformGrid Columns="3"/></ItemsPanelTemplate></Setter.Value>
+            </Setter>
+            <Setter Property="ItemTemplate">
+                <Setter.Value>
+                    <DataTemplate>
+                        <StackPanel Margin="0,7,10,0">
+                            <TextBlock Text="{Binding Label}" TextWrapping="Wrap" Style="{StaticResource MetricTextStyle}"/>
+                            <TextBox Text="{Binding Value, Mode=OneWay}" Style="{StaticResource SelectableValue}"
+                                     AutomationProperties.Name="{Binding Label}"/>
+                        </StackPanel>
+                    </DataTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="DetailsToggle" TargetType="ToggleButton">
+            <Setter Property="Foreground" Value="{StaticResource MutedTextBrush}"/>
+            <Setter Property="HorizontalAlignment" Value="Left"/>
+            <Setter Property="Padding" Value="0,4"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border Background="Transparent" Padding="{TemplateBinding Padding}">
+                            <StackPanel Orientation="Horizontal">
+                                <Path x:Name="Chevron" Data="M 0 0 L 4 3 L 0 6" Stroke="{TemplateBinding Foreground}"
+                                      Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                <ContentPresenter VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Chevron" Property="Data" Value="M 0 1 L 3 5 L 6 1"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter Property="Foreground" Value="{StaticResource TestLabAccent}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="TestLabComboItemStyle" TargetType="ComboBoxItem"><Setter Property="Background" Value="#171819"/><Setter Property="Foreground" Value="{StaticResource TextBrush}"/><Setter Property="Padding" Value="8,5"/><Setter Property="FontFamily" Value="{StaticResource DisplayFont}"/><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ComboBoxItem"><Border x:Name="ItemBorder" Background="{TemplateBinding Background}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="{TemplateBinding Padding}"><ContentPresenter/></Border><ControlTemplate.Triggers><Trigger Property="IsHighlighted" Value="True"><Setter TargetName="ItemBorder" Property="Background" Value="#3A1A1D"/><Setter Property="Foreground" Value="{StaticResource TextBrush}"/></Trigger><Trigger Property="IsSelected" Value="True"><Setter TargetName="ItemBorder" Property="Background" Value="#4B2024"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter></Style>
+        <Style x:Key="TestLabComboToggleStyle" TargetType="ToggleButton"><Setter Property="FocusVisualStyle" Value="{x:Null}"/><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ToggleButton"><Border x:Name="Surface" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"><ContentPresenter/></Border><ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Surface" Property="Background" Value="#241416"/><Setter TargetName="Surface" Property="BorderBrush" Value="{StaticResource AccentHoverBrush}"/></Trigger><Trigger Property="IsChecked" Value="True"><Setter TargetName="Surface" Property="Background" Value="#3A1A1D"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter></Style>
+        <Style x:Key="TestLabComboStyle" TargetType="ComboBox">
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/><Setter Property="Background" Value="#171819"/><Setter Property="Foreground" Value="{StaticResource TextBrush}"/><Setter Property="BorderBrush" Value="{StaticResource AccentBrush}"/><Setter Property="BorderThickness" Value="1"/><Setter Property="Padding" Value="7,4"/><Setter Property="MinWidth" Value="155"/><Setter Property="ItemContainerStyle" Value="{StaticResource TestLabComboItemStyle}"/>
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ComboBox"><Grid><ToggleButton x:Name="ToggleButton" Style="{StaticResource TestLabComboToggleStyle}" IsChecked="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}" Focusable="False" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="24"/></Grid.ColumnDefinitions><ContentPresenter Margin="{TemplateBinding Padding}" VerticalAlignment="Center" Content="{TemplateBinding SelectionBoxItem}" ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}" ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"/><TextBlock Grid.Column="1" Text="▼" Foreground="{StaticResource AccentBrush}" FontSize="10" HorizontalAlignment="Center" VerticalAlignment="Center"/></Grid></ToggleButton><Popup x:Name="Popup" Placement="Bottom" AllowsTransparency="True" IsOpen="{TemplateBinding IsDropDownOpen}" PopupAnimation="Slide"><Border MinWidth="{Binding ActualWidth, ElementName=ToggleButton}" Background="#171819" BorderBrush="{StaticResource AccentBrush}" BorderThickness="1"><ScrollViewer MaxHeight="250" CanContentScroll="True"><ItemsPresenter/></ScrollViewer></Border></Popup></Grid></ControlTemplate></Setter.Value></Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <TabControl x:Name="Categories" Style="{StaticResource SegmentTabs}" SelectedIndex="0"
+                AutomationProperties.Name="{services:Loc TestLabHardwareCategory}" Margin="12,10,12,4">
+        <TabItem Header="{services:Loc SectionCpu}" Style="{StaticResource CategoryTab}">
+            <TabControl x:Name="CpuTools" Style="{StaticResource SegmentTabs}" SelectedIndex="0"
+                        AutomationProperties.Name="{services:Loc TestLabCpuTools}">
+                <TabItem Header="{services:Loc TestLabBenchmarkTool}" Style="{StaticResource ToolTab}">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        <StackPanel Margin="0,0,4,0">
+                            <Border Style="{StaticResource LabCard}">
+                                <StackPanel>
+                                    <TextBlock Text="{Binding CpuModel}" Style="{StaticResource CardTitleTextStyle}" TextWrapping="Wrap"/>
+                                    <TextBlock Text="{services:LocFormat FormatCoresThreads, Path=CpuCoresThreads}" Style="{StaticResource MetricTextStyle}"/>
+                                    <UniformGrid Columns="3" Margin="0,10,0,7">
+                                        <StackPanel>
+                                            <TextBlock Text="{services:Loc TestLabSingleThread}" Style="{StaticResource MetricTextStyle}"/>
+                                            <TextBox Text="{Binding SingleScore, Mode=OneWay}" Style="{StaticResource ScoreValue}"
+                                                     AutomationProperties.Name="{services:Loc TestLabSingleThread}"/>
+                                        </StackPanel>
+                                        <StackPanel>
+                                            <TextBlock Text="{services:Loc TestLabMultiThread}" Style="{StaticResource MetricTextStyle}"/>
+                                            <TextBox Text="{Binding MultiScore, Mode=OneWay}" Style="{StaticResource ScoreValue}"
+                                                     AutomationProperties.Name="{services:Loc TestLabMultiThread}"/>
+                                        </StackPanel>
+                                        <StackPanel>
+                                            <TextBlock Text="{services:Loc TestLabMultiThreadRatio}" Style="{StaticResource MetricTextStyle}"/>
+                                            <TextBox Text="{Binding Ratio, Mode=OneWay}" Style="{StaticResource ScoreValue}"
+                                                     Foreground="{StaticResource TextBrush}" AutomationProperties.Name="{services:Loc TestLabMultiThreadRatio}"/>
+                                        </StackPanel>
+                                    </UniformGrid>
+                                    <TextBlock Text="{Binding BenchmarkVersion}" Style="{StaticResource MetricTextStyle}" Margin="0,0,0,8"/>
+                                    <WrapPanel>
+                                        <Label Target="{Binding ElementName=BenchmarkThreads}" Content="{services:Loc TestLabThreads}"
+                                               Foreground="{StaticResource MutedTextBrush}" Padding="0,0,6,0" VerticalAlignment="Center"/>
+                                        <ComboBox x:Name="BenchmarkThreads" Style="{StaticResource TestLabComboStyle}"
+                                                  ItemsSource="{Binding ThreadOptions}" SelectedItem="{Binding SelectedThreadOption}"
+                                                  DisplayMemberPath="Display" IsEnabled="{Binding CanStartTest}" VerticalAlignment="Center"/>
+                                        <Button Style="{StaticResource PrimaryAction}" Click="StartBenchmark_Click"
+                                                Content="{services:Loc TestLabBenchmarkCpu}" IsEnabled="{Binding CanStartTest}" Margin="9,0,0,0"/>
+                                        <TextBlock Text="{Binding BenchmarkStatus}" Style="{StaticResource MetricTextStyle}"
+                                                   Margin="9,0,0,0" VerticalAlignment="Center"/>
+                                    </WrapPanel>
+                                </StackPanel>
+                            </Border>
+                            <Border Style="{StaticResource LabCard}">
+                                <StackPanel>
+                                    <DockPanel LastChildFill="True">
+                                        <Button DockPanel.Dock="Right" Style="{StaticResource SecondaryAction}" Click="CopyBenchmark_Click"
+                                                Content="{services:Loc TestLabCopyResults}" IsEnabled="{Binding HasBenchmarkResult}" Margin="8,0,0,0"/>
+                                        <TextBlock Text="{services:Loc TestLabLastBenchmark}" Style="{StaticResource ToolTitle}" VerticalAlignment="Center"/>
+                                    </DockPanel>
+                                    <ItemsControl Style="{StaticResource ResultRows}" ItemsSource="{Binding BenchmarkResultRows}"/>
+                                    <TextBlock Text="{services:Loc TestLabNoResults}" Margin="0,4,0,0">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock" BasedOn="{StaticResource MetricTextStyle}">
+                                                <Style.Triggers><DataTrigger Binding="{Binding HasBenchmarkResult}" Value="True">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                </DataTrigger></Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </ScrollViewer>
+                </TabItem>
+                <TabItem Header="{services:Loc TestLabStressTool}" Style="{StaticResource ToolTab}">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        <StackPanel Margin="0,0,4,0">
+                            <Border Style="{StaticResource LabCard}">
+                                <StackPanel>
+                                    <TextBlock Text="{Binding CpuModel}" Style="{StaticResource CardTitleTextStyle}" TextWrapping="Wrap"/>
+                                    <TextBlock Text="{services:LocFormat FormatCoresThreads, Path=CpuCoresThreads}" Style="{StaticResource MetricTextStyle}"/>
+                                    <WrapPanel Margin="0,7,0,0">
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,12,5">
+                                            <Label Target="{Binding ElementName=StressThreads}" Content="{services:Loc TestLabThreads}"
+                                                   Foreground="{StaticResource MutedTextBrush}" Padding="0,0,6,0" VerticalAlignment="Center"/>
+                                            <ComboBox x:Name="StressThreads" Style="{StaticResource TestLabComboStyle}"
+                                                      ItemsSource="{Binding ThreadOptions}" SelectedItem="{Binding SelectedThreadOption}"
+                                                      DisplayMemberPath="Display" IsEnabled="{Binding CanStartTest}" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,12,5">
+                                            <Label Target="{Binding ElementName=StressDuration}" Content="{services:Loc TestLabDuration}"
+                                                   Foreground="{StaticResource MutedTextBrush}" Padding="0,0,6,0" VerticalAlignment="Center"/>
+                                            <ComboBox x:Name="StressDuration" Style="{StaticResource TestLabComboStyle}"
+                                                      ItemsSource="{Binding DurationOptions}" SelectedItem="{Binding SelectedDurationOption}"
+                                                      DisplayMemberPath="Display" IsEnabled="{Binding CanStartTest}" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                        <Button Style="{StaticResource PrimaryAction}" Click="StartStress_Click"
+                                                Content="{services:Loc TestLabStartStress}" IsEnabled="{Binding CanStartTest}" Margin="0,0,6,5"/>
+                                        <Button Style="{StaticResource SecondaryAction}" Click="StopTest_Click" Margin="0,0,0,5"
+                                                Content="{services:Loc TestLabStopTest}" IsEnabled="{Binding CanStopTest}"
+                                                Visibility="{Binding IsStressRunning, Converter={StaticResource ShowWhenTrue}}"/>
+                                    </WrapPanel>
+                                    <CheckBox Content="{services:Loc TestLabThermalSafety}" IsChecked="{Binding ThermalSafetyEnabled}"
+                                              IsEnabled="{Binding ThermalSafetyAvailable}" Foreground="{StaticResource TextBrush}" Margin="0,3,0,0"/>
+                                    <TextBlock Text="{services:Loc TestLabNoTemperatureSensor}">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock" BasedOn="{StaticResource WarningText}">
+                                                <Style.Triggers><DataTrigger Binding="{Binding ThermalSafetyAvailable}" Value="True">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                </DataTrigger></Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                    <TextBlock Text="{services:Loc TestLabThermalSafetyOff}">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock" BasedOn="{StaticResource WarningText}">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers><MultiDataTrigger>
+                                                    <MultiDataTrigger.Conditions>
+                                                        <Condition Binding="{Binding ThermalSafetyAvailable}" Value="True"/>
+                                                        <Condition Binding="{Binding ThermalSafetyEnabled}" Value="False"/>
+                                                    </MultiDataTrigger.Conditions>
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </MultiDataTrigger></Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                    <TextBlock Text="{services:Loc TestLabBatteryWarning}" Style="{StaticResource WarningText}"
+                                               Visibility="{Binding IsBatteryPower, Converter={StaticResource ShowWhenTrue}}"/>
+                                    <ToggleButton x:Name="StressDetails" Content="{services:Loc TestLabDetails}"
+                                                  Style="{StaticResource DetailsToggle}" Margin="0,4,0,0"/>
+                                    <StackPanel Visibility="{Binding IsChecked, ElementName=StressDetails, Converter={StaticResource ShowWhenTrue}}">
+                                        <TextBlock Text="{services:Loc TestLabSafetyNote}" Style="{StaticResource MetricTextStyle}" TextWrapping="Wrap"/>
+                                        <CheckBox Content="{services:Loc TestLabDontShowAgain}" IsChecked="{Binding SuppressStressWarningPreference}"
+                                                  Foreground="{StaticResource MutedTextBrush}" Margin="0,4,0,0"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+                            <Border Style="{StaticResource LabCard}">
+                                <StackPanel>
+                                    <WrapPanel>
+                                        <TextBlock Text="{Binding StressStatus}" Style="{StaticResource ToolTitle}" Margin="0,0,12,0"/>
+                                        <TextBlock Text="{Binding Elapsed}" FontFamily="{StaticResource DisplayFont}" FontSize="14"
+                                                   VerticalAlignment="Center" AutomationProperties.Name="{services:Loc TestLabElapsed}"/>
+                                    </WrapPanel>
+                                    <UniformGrid Columns="3" Margin="0,5,0,0">
+                                        <StackPanel Margin="0,0,8,0">
+                                            <TextBlock Text="{services:Loc LabelTemperature}" Style="{StaticResource MetricTextStyle}"/>
+                                            <TextBlock Text="{Binding CurrentTemperature}" Style="{StaticResource ValueText}"/>
+                                            <views:Sparkline Values="{Binding TemperatureHistory}" Stroke="{StaticResource TestLabAccent}" Height="38"
+                                                             Visibility="{Binding IsStressRunning, Converter={StaticResource ShowWhenTrue}}"/>
+                                        </StackPanel>
+                                        <StackPanel Margin="0,0,8,0">
+                                            <TextBlock Text="{services:Loc LabelUsage}" Style="{StaticResource MetricTextStyle}"/>
+                                            <TextBlock Text="{Binding CurrentUsage}" Style="{StaticResource ValueText}"/>
+                                            <views:Sparkline Values="{Binding UsageHistory}" Stroke="{StaticResource WarningBrush}" Height="38"
+                                                             Visibility="{Binding IsStressRunning, Converter={StaticResource ShowWhenTrue}}"/>
+                                        </StackPanel>
+                                        <StackPanel>
+                                            <TextBlock Text="{services:Loc LabelPower}" Style="{StaticResource MetricTextStyle}"/>
+                                            <TextBlock Text="{Binding CurrentPower}" Style="{StaticResource ValueText}"/>
+                                        </StackPanel>
+                                    </UniformGrid>
+                                </StackPanel>
+                            </Border>
+                            <Border Style="{StaticResource LabCard}">
+                                <StackPanel>
+                                    <DockPanel>
+                                        <Button DockPanel.Dock="Right" Style="{StaticResource SecondaryAction}" Click="CopyStress_Click"
+                                                Content="{services:Loc TestLabCopyResults}" IsEnabled="{Binding HasStressResult}" Margin="8,0,0,0"/>
+                                        <TextBlock Text="{services:Loc TestLabLastStress}" Style="{StaticResource ToolTitle}" VerticalAlignment="Center"/>
+                                    </DockPanel>
+                                    <ItemsControl Style="{StaticResource ResultRows}" ItemsSource="{Binding StressResultRows}"/>
+                                    <TextBlock Text="{services:Loc TestLabNoResults}" Margin="0,4,0,0">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock" BasedOn="{StaticResource MetricTextStyle}">
+                                                <Style.Triggers><DataTrigger Binding="{Binding HasStressResult}" Value="True">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                </DataTrigger></Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </ScrollViewer>
+                </TabItem>
+            </TabControl>
+        </TabItem>
+        <TabItem Header="{services:Loc TestLabStorage}" Style="{StaticResource CategoryTab}">
+            <TabControl Style="{StaticResource SegmentTabs}" SelectedIndex="0" AutomationProperties.Name="{services:Loc TestLabStorage}">
+                <TabItem Header="{services:Loc TestLabStorageBenchmark}" Style="{StaticResource ToolTab}">
+                    <Border Style="{StaticResource LabCard}" VerticalAlignment="Top">
+                        <TextBlock Text="{services:Loc TestLabStorageComingSoon}" Style="{StaticResource ToolTitle}"/>
+                    </Border>
+                </TabItem>
+            </TabControl>
+        </TabItem>
+    </TabControl>
+</UserControl>

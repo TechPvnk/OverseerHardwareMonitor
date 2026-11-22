@@ -86,6 +86,28 @@
   <data name="FormatNetworkIpv4" xml:space="preserve"><value>IPv4: {0}</value></data>
   <data name="FormatNetworkIpv6" xml:space="preserve"><value>IPv6: {0}</value></data>
   <data name="FormatNetworkMac" xml:space="preserve"><value>MAC: {0}</value></data>
+  <data name="TestLabHardwareCategory" xml:space="preserve"><value>Hardware category</value></data>
+  <data name="TestLabCpuTools" xml:space="preserve"><value>CPU tools</value></data>
+  <data name="TestLabBenchmarkTool" xml:space="preserve"><value>Benchmark</value></data>
+  <data name="TestLabStressTool" xml:space="preserve"><value>Stress Test</value></data>
+  <data name="TestLabStorage" xml:space="preserve"><value>Storage</value></data>
+  <data name="TestLabStorageBenchmark" xml:space="preserve"><value>Storage Benchmark</value></data>
+  <data name="TestLabStorageComingSoon" xml:space="preserve"><value>Storage Benchmark &#x2014; Coming Soon</value></data>
+  <data name="TestLabCopyResults" xml:space="preserve"><value>Copy Results</value></data>
+  <data name="TestLabNoResults" xml:space="preserve"><value>No results yet</value></data>
+  <data name="TestLabDetails" xml:space="preserve"><value>Details</value></data>
+  <data name="TestLabReady" xml:space="preserve"><value>Ready</value></data>
+  <data name="TestLabStopping" xml:space="preserve"><value>Stopping</value></data>
+  <data name="TestLabWarmupSingle" xml:space="preserve"><value>Single-thread warmup</value></data>
+  <data name="TestLabMeasureSingle" xml:space="preserve"><value>Measuring single thread</value></data>
+  <data name="TestLabWarmupMulti" xml:space="preserve"><value>Multi-thread warmup</value></data>
+  <data name="TestLabMeasureMulti" xml:space="preserve"><value>Measuring multiple threads</value></data>
+  <data name="TestLabAverageUsage" xml:space="preserve"><value>Average usage</value></data>
+  <data name="TestLabAverageTemperature" xml:space="preserve"><value>Average temperature</value></data>
+  <data name="TestLabAveragePower" xml:space="preserve"><value>Average power</value></data>
+  <data name="TestLabPointsFormat" xml:space="preserve"><value>{0:N0} pts</value></data>
+  <data name="TestLabThermalSafetyOff" xml:space="preserve"><value>Automatic thermal stop is off.</value></data>
+  <data name="TestLabElapsed" xml:space="preserve"><value>Elapsed time</value></data>
   <data name="TestLabCpuBenchmark" xml:space="preserve"><value>CPU BENCHMARK</value></data>
   <data name="TestLabCpuStress" xml:space="preserve"><value>CPU STRESS TEST</value></data>
   <data name="TestLabSingleThread" xml:space="preserve"><value>Single Thread</value></data>

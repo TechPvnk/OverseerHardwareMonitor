@@ -51,34 +51,46 @@ public sealed class TestCoordinator : IDisposable
     public CpuTestKind ActiveKind { get { lock (_gate) return _activeKind; } }
     public bool IsRunning => ActiveKind != CpuTestKind.None;
 
-    public Task<CpuBenchmarkResult> StartBenchmarkAsync(int workers, Action<CpuBenchmarkState>? stateChanged)
-    {
-        CancellationToken token = Begin(CpuTestKind.Benchmark);
-        Task<CpuBenchmarkResult> task = CpuBenchmarkService.RunAsync(workers, stateChanged, token); Track(task); return task;
-    }
-    public Task<CpuStressResult> StartStressAsync(int workers, Action<CpuStressState>? stateChanged)
-    {
-        CancellationToken token = Begin(CpuTestKind.Stress);
-        Task<CpuStressResult> task = CpuStressService.RunAsync(workers, stateChanged, token); Track(task); return task;
-    }
+    public Task<CpuBenchmarkResult> StartBenchmarkAsync(int workers, Action<CpuBenchmarkState>? stateChanged) =>
+        StartAsync(CpuTestKind.Benchmark, token => CpuBenchmarkService.RunAsync(workers, stateChanged, token));
+
+    public Task<CpuStressResult> StartStressAsync(int workers, Action<CpuStressState>? stateChanged) =>
+        StartAsync(CpuTestKind.Stress, token => CpuStressService.RunAsync(workers, stateChanged, token));
+
     public async Task StopAsync()
     {
         Task? active; lock (_gate) { _cancellation?.Cancel(); active = _activeTask; }
         if (active is not null) { try { await active.ConfigureAwait(false); } catch (OperationCanceledException) { } catch { } }
     }
-    private CancellationToken Begin(CpuTestKind kind)
+    private Task<TResult> StartAsync<TResult>(CpuTestKind kind, Func<CancellationToken, Task<TResult>> run)
     {
         lock (_gate)
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
             if (_activeKind != CpuTestKind.None) throw new InvalidOperationException("A TestLab operation is already running.");
-            _cancellation = new CancellationTokenSource(); _activeKind = kind; return _cancellation.Token;
+            _cancellation = new CancellationTokenSource();
+            _activeKind = kind;
+            Task<TResult> task = RunAndClearAsync(run, _cancellation.Token);
+            if (_activeKind != CpuTestKind.None) _activeTask = task;
+            return task;
         }
     }
-    private void Track(Task task)
+    private async Task<TResult> RunAndClearAsync<TResult>(Func<CancellationToken, Task<TResult>> run, CancellationToken token)
     {
-        lock (_gate) _activeTask = task;
-        _ = task.ContinueWith(_ => { lock (_gate) { _cancellation?.Dispose(); _cancellation = null; _activeTask = null; _activeKind = CpuTestKind.None; } }, TaskScheduler.Default);
+        try
+        {
+            return await run(token).ConfigureAwait(false);
+        }
+        finally
+        {
+            lock (_gate)
+            {
+                _cancellation?.Dispose();
+                _cancellation = null;
+                _activeTask = null;
+                _activeKind = CpuTestKind.None;
+            }
+        }
     }
     public void Dispose() { if (_disposed) return; _disposed = true; StopAsync().GetAwaiter().GetResult(); }
 }

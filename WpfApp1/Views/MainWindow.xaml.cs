@@ -27,7 +27,7 @@ namespace Overseer
         private System.Drawing.Icon? _trayIconGraphic;
         private Forms.ToolStripMenuItem? _trayOpenMenuItem;
         private Forms.ToolStripMenuItem? _trayExitMenuItem;
-        private Forms.ToolStripMenuItem? _trayStopStressMenuItem;
+        private Forms.ToolStripMenuItem? _trayStopTestMenuItem;
         private readonly SidebarSettingsService _sidebarSettingsService = SidebarSettingsService.Instance;
         private SidebarWindow? _sidebarWindow;
         private bool _exitRequested;
@@ -114,12 +114,12 @@ namespace Overseer
             Forms.ContextMenuStrip menu = new();
             _trayOpenMenuItem = new Forms.ToolStripMenuItem();
             _trayOpenMenuItem.Click += (_, _) => RestoreFromTray();
-            _trayStopStressMenuItem = new Forms.ToolStripMenuItem { Visible = false };
-            _trayStopStressMenuItem.Click += async (_, _) => await _viewModel.TestLab.StopAsync();
+            _trayStopTestMenuItem = new Forms.ToolStripMenuItem { Visible = false };
+            _trayStopTestMenuItem.Click += async (_, _) => await _viewModel.TestLab.StopAsync();
             _trayExitMenuItem = new Forms.ToolStripMenuItem();
             _trayExitMenuItem.Click += (_, _) => ExitApplication();
             menu.Items.Add(_trayOpenMenuItem);
-            menu.Items.Add(_trayStopStressMenuItem);
+            menu.Items.Add(_trayStopTestMenuItem);
             menu.Items.Add(_trayExitMenuItem);
 
             _trayIcon = new Forms.NotifyIcon
@@ -300,22 +300,6 @@ namespace Overseer
             Close();
         }
 
-        private async void StartBenchmarkButton_Click(object sender, RoutedEventArgs e)
-        {
-            await _viewModel.TestLab.StartBenchmarkAsync();
-        }
-
-        private async void StartStressButton_Click(object sender, RoutedEventArgs e)
-        {
-            TestLabViewModel testLab = _viewModel.TestLab;
-            if (testLab.ShouldShowStressWarning)
-            {
-                string message = L("TestLabStressWarning") + (testLab.IsBatteryPower ? Environment.NewLine + Environment.NewLine + L("TestLabBatteryWarning") : string.Empty);
-                if (MessageBox.Show(message, L("TestLabStressWarningTitle"), MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
-            }
-            await testLab.StartStressAsync();
-        }
-
         private async void StopCpuTestButton_Click(object sender, RoutedEventArgs e)
         {
             await _viewModel.TestLab.StopAsync();
@@ -323,9 +307,9 @@ namespace Overseer
 
         private void TestLab_PropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
-            if (e.PropertyName is nameof(TestLabViewModel.IsStressRunning) or nameof(TestLabViewModel.PersistentStressText) or nameof(TestLabViewModel.IsTestRunning))
+            if (e.PropertyName is nameof(TestLabViewModel.IsTestRunning) or nameof(TestLabViewModel.CanStopTest))
             {
-                Dispatcher.BeginInvoke(UpdateTestLabChrome);
+                UpdateTestLabChrome();
             }
         }
 
@@ -660,9 +644,10 @@ namespace Overseer
 
         private void UpdateTestLabChrome()
         {
-            if (_trayStopStressMenuItem is null) return;
-            _trayStopStressMenuItem.Text = L("TrayStopCpuStress");
-            _trayStopStressMenuItem.Visible = _viewModel.TestLab.IsStressRunning;
+            if (_trayStopTestMenuItem is null) return;
+            _trayStopTestMenuItem.Text = L("TestLabStopTest");
+            _trayStopTestMenuItem.Visible = _viewModel.TestLab.IsTestRunning;
+            _trayStopTestMenuItem.Enabled = _viewModel.TestLab.CanStopTest;
         }
 
         private static string L(string key) => LocalizationService.Instance[key];
